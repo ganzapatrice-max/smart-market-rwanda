@@ -91,12 +91,6 @@ export default function TechnicianPage() {
             Connect to Patients
           </Link>
 
-          <Link
-            href="/technician/portfolio"
-            className="bg-blue-600 p-3 rounded-xl text-center hover:bg-blue-700"
-          >
-            Your Portfolio
-          </Link>
 
           <Link
             href="/technician/post-service"

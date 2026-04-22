@@ -66,7 +66,7 @@ export default function ProfilePage() {
 
       alert("Profile saved!");
     } catch (error) {
-      alert("Failed");
+      alert("Failed to save profile");
     } finally {
       setLoading(false);
     }
@@ -87,6 +87,7 @@ export default function ProfilePage() {
         ✎ My Profile
       </h1>
 
+      {/* NAME */}
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -94,6 +95,7 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
+      {/* LOCATION */}
       <input
         value={location}
         onChange={(e) => setLocation(e.target.value)}
@@ -101,6 +103,7 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
+      {/* BIO */}
       <textarea
         value={bio}
         onChange={(e) => setBio(e.target.value)}
@@ -108,6 +111,7 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
+      {/* ROLE */}
       <select
         value={role}
         onChange={(e) => setRole(e.target.value)}
@@ -117,6 +121,7 @@ export default function ProfilePage() {
         <option value="patient">Patient</option>
       </select>
 
+      {/* SAVE */}
       <button
         onClick={saveProfile}
         disabled={loading}
@@ -125,7 +130,7 @@ export default function ProfilePage() {
         {loading ? "Saving..." : "Save Profile"}
       </button>
 
-      {/* Technician only */}
+      {/* TECHNICIAN ONLY */}
       {role === "technician" && (
         <>
           <button className="w-full bg-blue-600 p-4 rounded-xl font-bold mb-4">
@@ -138,6 +143,7 @@ export default function ProfilePage() {
         </>
       )}
 
+      {/* CONNECT */}
       <Link
         href="/technicians"
         className="block w-full bg-purple-600 p-4 rounded-xl font-bold text-center mb-4"
@@ -152,6 +158,7 @@ export default function ProfilePage() {
         Connect to Patient
       </Link>
 
+      {/* HOME */}
       <Link
         href="/"
         className="block w-full bg-gray-700 p-4 rounded-xl font-bold text-center mb-4"
@@ -159,6 +166,7 @@ export default function ProfilePage() {
         Home
       </Link>
 
+      {/* LOGOUT */}
       <button
         onClick={logout}
         className="w-full bg-red-600 p-4 rounded-xl font-bold"

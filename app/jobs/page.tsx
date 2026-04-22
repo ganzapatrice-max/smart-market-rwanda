@@ -19,22 +19,26 @@ export default function JobsPage() {
   // LOAD JOBS
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(
-      collection(db, "jobs"),
-      orderBy("createdAt", "desc")
-    );
+  const q = collection(db, "jobs");
 
-    const unsub = onSnapshot(q, (snap) => {
+  const unsub = onSnapshot(
+    q,
+    (snap) => {
       const data = snap.docs.map((item) => ({
         id: item.id,
         ...item.data(),
       }));
 
       setJobs(data);
-    });
+    },
+    (error) => {
+      console.log(error);
+      alert(error.message);
+    }
+  );
 
-    return () => unsub();
-  }, []);
+  return () => unsub();
+}, []);
 
   //////////////////////////////////////////////////////
   // COMPLETE JOB

@@ -4,59 +4,87 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../lib/firebase";
 
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 
 import {
   doc,
   getDoc,
   setDoc,
-  increment,
-  serverTimestamp,
 } from "firebase/firestore";
 
-export default function ProfilePage() {
+export default function WorkerProfilePage() {
   const [user, setUser] = useState<any>(null);
 
-  const [photo, setPhoto] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [service, setService] = useState("");
-  const [role, setRole] = useState("technician");
+  const [bio, setBio] = useState("");
+  const [role, setRole] =
+    useState("technician");
+
+  const [loading, setLoading] =
+    useState(false);
 
   //////////////////////////////////////////////////////
   // LOAD USER
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = onAuthStateChanged(
-      auth,
-      async (currentUser) => {
-        if (!currentUser?.email) return;
+    const unsub =
+      onAuthStateChanged(
+        auth,
+        async (currentUser) => {
+          if (!currentUser) {
+            window.location.href =
+              "/login";
+            return;
+          }
 
-        setUser(currentUser);
+          setUser(currentUser);
 
-        const userRef = doc(
-          db,
-          "workers",
-          currentUser.email
-        );
+          const ref = doc(
+            db,
+            "workers",
+            currentUser.uid
+          );
 
-        const snap = await getDoc(userRef);
+          const snap =
+            await getDoc(ref);
 
-        if (snap.exists()) {
-          const data = snap.data();
+          if (snap.exists()) {
+            const data =
+              snap.data();
 
-          setName(data.name || "");
-          setPhone(data.phone || "");
-          setLocation(data.location || "");
-          setService(data.service || "");
-          setRole(data.role || "technician");
-          setPhoto(data.photo || "");
-        } else {
-          setName(currentUser.email);
+            setName(
+              data.name || ""
+            );
+
+            setPhone(
+              data.phone || ""
+            );
+
+            setLocation(
+              data.location || ""
+            );
+
+            setService(
+              data.service || ""
+            );
+
+            setBio(
+              data.bio || ""
+            );
+
+            setRole(
+              data.role ||
+                "technician"
+            );
+          }
         }
-      }
-    );
+      );
 
     return () => unsub();
   }, []);
@@ -64,284 +92,151 @@ export default function ProfilePage() {
   //////////////////////////////////////////////////////
   // SAVE PROFILE
   //////////////////////////////////////////////////////
-  const saveProfile = async () => {
-    if (!user?.email) return;
-
-    await setDoc(
-      doc(db, "workers", user.email),
-      {
-        photo,
-        name,
-        email: user.email,
-        phone,
-        location,
-        service,
-        role,
-        online: true,
-      },
-      { merge: true }
-    );
-
-    alert("Profile Saved ✅");
-  };
-
-  //////////////////////////////////////////////////////
-  // START PAYMENT + CHAT
-  //////////////////////////////////////////////////////
-  const startConsultationPayment =
+  const saveProfile =
     async () => {
-      if (!user?.email) return;
+      if (!user) return;
 
-      const technicianId =
-        prompt(
-          "Enter Technician Email"
-        ) || "";
+      try {
+        setLoading(true);
 
-      if (!technicianId) return;
+        await setDoc(
+          doc(
+            db,
+            "workers",
+            user.uid
+          ),
+          {
+            uid: user.uid,
+            email:
+              user.email,
+            name,
+            phone,
+            location,
+            service,
+            bio,
+            role,
+            updatedAt:
+              new Date(),
+          },
+          { merge: true }
+        );
 
-      const confirmed = confirm(
-        "Consultation Fee: 2,000 Frw\n\nContinue?"
-      );
-
-      if (!confirmed) return;
-
-      alert("Payment Successful ✅");
-
-      const paymentId =
-        Date.now().toString();
-
-      //////////////////////////////////////////////////////
-      // SAVE PAYMENT
-      //////////////////////////////////////////////////////
-      await setDoc(
-        doc(db, "payments", paymentId),
-        {
-          userId: user.email,
-          technicianId,
-          amount: 2000,
-          platformFee: 300,
-          technicianAmount: 1700,
-          type: "consultation",
-          status: "paid",
-          createdAt: serverTimestamp(),
-        }
-      );
-
-      //////////////////////////////////////////////////////
-      // TECHNICIAN WALLET
-      //////////////////////////////////////////////////////
-      await setDoc(
-        doc(db, "wallets", technicianId),
-        {
-          userId: technicianId,
-          balance: increment(1700),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      //////////////////////////////////////////////////////
-      // PLATFORM PROFIT
-      //////////////////////////////////////////////////////
-      await setDoc(
-        doc(db, "platform", "main"),
-        {
-          totalRevenue: increment(2000),
-          totalCommission: increment(300),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      //////////////////////////////////////////////////////
-      // OPEN CHAT
-      //////////////////////////////////////////////////////
-      window.location.href =
-        `/chat/${encodeURIComponent(
-          technicianId
-        )}`;
+        alert(
+          "Profile Saved ✅"
+        );
+      } catch {
+        alert(
+          "Failed to save"
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
   //////////////////////////////////////////////////////
   // LOGOUT
   //////////////////////////////////////////////////////
-  const startGoldSubscription = async () => {
-  if (!user?.email) return;
+  const logout =
+    async () => {
+      await signOut(auth);
+      window.location.href =
+        "/login";
+    };
 
-  const confirmed = confirm(
-    "Gold Subscription = 10,000 Frw / Month\nContinue?"
-  );
-
-  if (!confirmed) return;
-
-  const now = new Date();
-  const end = new Date();
-  end.setDate(now.getDate() + 30);
-
-  await setDoc(doc(db, "subscriptions", user.email), {
-    userId: user.email,
-    plan: "Gold",
-    amount: 10000,
-    status: "active",
-    startDate: now,
-    endDate: end,
-    badge: "Gold",
-    featured: true,
-    createdAt: serverTimestamp(),
-  });
-
-  await setDoc(
-    doc(db, "platform", "main"),
-    {
-      totalRevenue: increment(10000),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  alert("Gold Activated 👑");
-};
-  const logout = async () => {
-    await signOut(auth);
-    window.location.href = "/login";
-  };
-
-  const activateVerified = async () => {
-  if (!user?.email) return;
-
-  const ok = confirm(
-    "Verification Fee = 5,000 Frw. Continue?"
-  );
-
-  if (!ok) return;
-
-  const license = prompt("Enter License Number");
-
-  if (!license) return;
-
-  await setDoc(doc(db, "verifications", user.email), {
-    userId: user.email,
-    status: "verified",
-    amount: 5000,
-    licenseId: license,
-    createdAt: serverTimestamp(),
-  });
-
-  await setDoc(
-    doc(db, "workers", user.email),
-    { verified: true },
-    { merge: true }
-  );
-
-  await setDoc(
-    doc(db, "platform", "main"),
-    {
-      totalRevenue: increment(5000),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  alert("Verified Activated ✔️");
-};
+  //////////////////////////////////////////////////////
+  // BUTTON STYLE
+  //////////////////////////////////////////////////////
+  const box =
+    "w-full rounded-full p-4 text-center font-bold text-white";
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#111b21] flex justify-center items-center px-4 py-10">
-      <div className="w-full max-w-lg bg-[#202c33] rounded-3xl shadow-2xl p-8">
+    <main className="min-h-screen bg-[#111b21] text-white px-4 py-8 flex justify-center">
 
-        {/* HEADER */}
-        <div className="mb-6">
-          <h1 className="text-white text-3xl font-bold">
-            My Profile
-          </h1>
-        </div>
+      <div className="w-full max-w-xl bg-[#202c33] rounded-3xl p-6 shadow-2xl">
 
-        {/* PHOTO */}
-        <div className="flex justify-center mb-8">
-          <label className="cursor-pointer relative">
-
-            <img
-              src={
-                photo ||
-                "/default-avatar.png"
-              }
-              alt="Profile"
-              className="w-24 h-24 rounded-full object-cover border-2 border-green-500"
-            />
-
-            <div className="absolute bottom-0 right-0 bg-green-600 w-8 h-8 rounded-full flex items-center justify-center text-white">
-              ✎
-            </div>
-
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={(e) =>
-                setPhoto(
-                  URL.createObjectURL(
-                    e.target.files![0]
-                  )
-                )
-              }
-            />
-          </label>
-        </div>
+        {/* TITLE */}
+        <h1 className="text-3xl font-bold text-center mb-8">
+          ✎ My Profile
+        </h1>
 
         {/* FORM */}
-        <div className="flex flex-col gap-5 text-white">
+        <div className="space-y-4 mb-8">
 
           <input
             value={name}
             onChange={(e) =>
-              setName(e.target.value)
+              setName(
+                e.target.value
+              )
             }
             placeholder="Full Name"
-            className="p-3 rounded-xl bg-[#2a3942]"
+            className="w-full p-4 rounded-xl text-black"
           />
 
           <input
-            value={user?.email || ""}
+            value={
+              user?.email ||
+              ""
+            }
             readOnly
-            className="p-3 rounded-xl bg-[#111b21] text-gray-400"
+            className="w-full p-4 rounded-xl bg-gray-300 text-black"
           />
 
           <input
             value={phone}
             onChange={(e) =>
-              setPhone(e.target.value)
+              setPhone(
+                e.target.value
+              )
             }
-            placeholder="Phone"
-            className="p-3 rounded-xl bg-[#2a3942]"
+            placeholder="Phone Number"
+            className="w-full p-4 rounded-xl text-black"
           />
 
           <input
             value={location}
             onChange={(e) =>
-              setLocation(e.target.value)
+              setLocation(
+                e.target.value
+              )
             }
             placeholder="Location"
-            className="p-3 rounded-xl bg-[#2a3942]"
+            className="w-full p-4 rounded-xl text-black"
           />
 
           <input
             value={service}
             onChange={(e) =>
-              setService(e.target.value)
+              setService(
+                e.target.value
+              )
             }
-            placeholder="Service"
-            className="p-3 rounded-xl bg-[#2a3942]"
+            placeholder="Service / Skill"
+            className="w-full p-4 rounded-xl text-black"
+          />
+
+          <textarea
+            value={bio}
+            onChange={(e) =>
+              setBio(
+                e.target.value
+              )
+            }
+            placeholder="About You"
+            className="w-full p-4 rounded-xl text-black"
           />
 
           <select
             value={role}
             onChange={(e) =>
-              setRole(e.target.value)
+              setRole(
+                e.target.value
+              )
             }
-            className="p-3 rounded-xl bg-[#2a3942]"
+            className="w-full p-4 rounded-xl text-black"
           >
             <option value="technician">
               Technician
@@ -353,78 +248,88 @@ export default function ProfilePage() {
           </select>
         </div>
 
-        {/* BUTTONS */}
-        <div className="mt-10 flex flex-col gap-4">
-
-          <button
-            onClick={saveProfile}
-            className="bg-green-600 text-white py-4 px-5 rounded-xl"
-          >
-            Save Profile
-          </button>
+        {/* BUTTONS VERTICAL */}
+        <div className="space-y-4">
 
           <button
             onClick={
-              startConsultationPayment
+              saveProfile
             }
-            className="bg-blue-600 text-white py-4 px-5 rounded-xl"
+            disabled={
+              loading
+            }
+            className={`${box} bg-green-600`}
           >
-            Pay 2,000 Frw & Start Chat
+            {loading
+              ? "Saving..."
+              : "Save Profile"}
           </button>
-<button
-  onClick={activateVerified}
-  className="bg-blue-600 text-white py-4 px-5 rounded-xl w-full"
->
- ✔️ Get Verified Badge (5,000 Frw)
-</button>
+
+          {role ===
+            "technician" && (
+            <>
+              <button
+                className={`${box} bg-blue-600`}
+              >
+                ✔️ Get Verified Badge
+              </button>
+
+              <button
+                className={`${box} bg-yellow-500 text-black`}
+              >
+                👑 Gold Subscription
+              </button>
+            </>
+          )}
+
           <Link
             href="/workers/technicians"
-            className="bg-purple-600 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-purple-600 block`}
           >
             Connect to Technician
           </Link>
 
           <Link
             href="/workers/patients"
-            className="bg-pink-600 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-pink-600 block`}
           >
             Connect to Patient
           </Link>
 
           <Link
             href="/workers"
-            className="bg-gray-600 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-gray-600 block`}
           >
             Go Back
           </Link>
 
           <Link
             href="/"
-            className="bg-gray-700 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-cyan-600 block`}
           >
             Home
           </Link>
 
           <Link
             href="/settings"
-            className="bg-yellow-500 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-orange-500 block`}
           >
             Settings
           </Link>
-<button
-  onClick={startGoldSubscription}
-  className="bg-yellow-500 text-white py-4 px-5 rounded-xl"
->
-  👑 Activate Gold Subscription (10,000 Frw)
-</button>
+
           <button
             onClick={logout}
-            className="bg-red-600 text-white py-4 px-5 rounded-xl"
+            className={`${box} bg-red-600`}
           >
             Logout
           </button>
 
         </div>
+
+        <p className="text-center text-gray-400 mt-8 text-sm">
+          © 2026 Smart Market Rwanda
+        </p>
+
       </div>
     </main>
   );

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 import { auth, db } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
-
 import { doc, getDoc } from "firebase/firestore";
 
 export default function AdminPage() {
@@ -61,7 +60,7 @@ export default function AdminPage() {
 
         <button
           onClick={logout}
-          className="bg-red-600 px-5 py-3 rounded-2xl font-bold"
+          className="bg-red-600 px-5 py-3 rounded-2xl font-bold hover:bg-red-700"
         >
           🚪 Logout
         </button>
@@ -69,7 +68,9 @@ export default function AdminPage() {
 
       {/* REVENUE */}
       <div className="bg-green-600 rounded-3xl p-6 mb-8 shadow-xl">
-        <p>Platform Revenue</p>
+        <p className="text-lg">
+          Platform Revenue
+        </p>
 
         <h2 className="text-4xl font-bold mt-2">
           {revenue} Frw
@@ -77,30 +78,53 @@ export default function AdminPage() {
       </div>
 
       {/* MENU */}
-      <div className="grid gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
 
-        <Link href="/admin/users" className="bg-indigo-600 rounded-3xl p-6">
+        <Link
+          href="/admin/users"
+          className="bg-indigo-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
           👤 Users Panel
         </Link>
 
-        <Link href="/admin/withdrawals" className="bg-pink-600 rounded-3xl p-6">
+        <Link
+          href="/admin/jobs"
+          className="bg-orange-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
+          📦 Manage Jobs
+        </Link>
+
+        <Link
+          href="/admin/withdrawals"
+          className="bg-pink-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
           💸 Withdrawals
         </Link>
 
-        <Link href="/admin/ads" className="bg-yellow-500 rounded-3xl p-6">
-          📢 Ads Panel
-        </Link>
-
-        <Link href="/admin/chats" className="bg-cyan-600 rounded-3xl p-6">
+        <Link
+          href="/admin/chats"
+          className="bg-cyan-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
           💬 Chat Tracking
         </Link>
 
-        <Link href="/" className="bg-green-700 rounded-3xl p-6">
+        <Link
+          href="/admin/ads"
+          className="bg-yellow-500 text-black rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
+          📢 Ads Panel
+        </Link>
+
+        <Link
+          href="/"
+          className="bg-green-700 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
+        >
           🚀 Open Platform
         </Link>
 
       </div>
 
+      {/* FOOTER */}
       <div className="text-center text-gray-500 mt-10">
         Smart Market Rwanda Admin
       </div>

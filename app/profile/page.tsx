@@ -1,127 +1,171 @@
 "use client";
 
-import { useState } from "react";
-import { uploadImage } from "../../lib/upload";
-import { db } from "../../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { auth, db } from "../../lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ProfilePage() {
-  const [photo, setPhoto] = useState<string>("");
+  const router = useRouter();
+
+  const [uid, setUid] = useState("");
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [bio, setBio] = useState("");
+  const [role, setRole] = useState("technician");
+
   const [loading, setLoading] = useState(false);
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  //////////////////////////////////////////////////////
+  // LOAD USER
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-  // 🔹 Handle Image Upload
-  const handleUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+      setUid(user.uid);
 
-    setLoading(true);
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
 
+      if (snap.exists()) {
+        const data = snap.data();
+
+        setName(data.name || "");
+        setLocation(data.location || "");
+        setBio(data.bio || "");
+        setRole(data.role || "technician");
+      }
+    });
+
+    return () => unsub();
+  }, [router]);
+
+  //////////////////////////////////////////////////////
+  // SAVE PROFILE
+  //////////////////////////////////////////////////////
+  const saveProfile = async () => {
     try {
-      const url = await uploadImage(file);
-      setPhoto(url);
+      setLoading(true);
+
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          name,
+          location,
+          bio,
+          role,
+        },
+        { merge: true }
+      );
+
+      alert("Profile saved!");
     } catch (error) {
-      console.error(error);
-      alert("Image upload failed");
+      alert("Failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 Save Profile to Firestore
-  const saveProfile = async () => {
-    if (!name || !email) {
-      alert("Name and Email are required");
-      return;
-    }
-
-    try {
-      await setDoc(doc(db, "users", email || name), {
-  name,
-  phone,
-  email,
-  photo,
-  role: "patient", // or technician later
-  district: "Kigali",
-  online: true,
-  createdAt: Date.now(),
-});
-
-      alert("Profile saved successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save profile");
-    }
+  //////////////////////////////////////////////////////
+  // LOGOUT
+  //////////////////////////////////////////////////////
+  const logout = async () => {
+    await signOut(auth);
+    router.push("/login");
   };
 
   return (
-    <main className="min-h-screen bg-[#111b21] text-white p-6">
-      <div className="max-w-md mx-auto bg-[#202c33] rounded-2xl p-6 shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          My Profile
-        </h1>
+    <main className="min-h-screen bg-black text-white p-5">
 
-        <div className="flex flex-col gap-4 items-center">
-          {/* 🔹 Profile Image */}
-          {photo ? (
-            <img
-              src={photo}
-              alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border-2 border-green-500"
-            />
-          ) : (
-            <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center text-sm">
-              No Image
-            </div>
-          )}
+      <h1 className="text-3xl font-bold mb-6">
+        ✎ My Profile
+      </h1>
 
-          {/* 🔹 Upload Button */}
-          <label className="bg-green-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-green-700 transition">
-            {loading ? "Uploading..." : "Upload Photo"}
-            <input
-              hidden
-              type="file"
-              accept="image/*"
-              onChange={handleUpload}
-            />
-          </label>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Your Name"
+        className="w-full p-4 rounded-xl text-black mb-4"
+      />
 
-          {/* 🔹 Inputs */}
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your Name"
-            className="w-full px-4 py-2 rounded bg-[#2a3942] outline-none"
-          />
+      <input
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        placeholder="Location"
+        className="w-full p-4 rounded-xl text-black mb-4"
+      />
 
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone"
-            className="w-full px-4 py-2 rounded bg-[#2a3942] outline-none"
-          />
+      <textarea
+        value={bio}
+        onChange={(e) => setBio(e.target.value)}
+        placeholder="About you"
+        className="w-full p-4 rounded-xl text-black mb-4"
+      />
 
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="w-full px-4 py-2 rounded bg-[#2a3942] outline-none"
-          />
+      <select
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        className="w-full p-4 rounded-xl text-black mb-4"
+      >
+        <option value="technician">Technician</option>
+        <option value="patient">Patient</option>
+      </select>
 
-          {/* 🔹 Save Button */}
-          <button
-            onClick={saveProfile}
-            className="w-full bg-blue-600 py-2 rounded hover:bg-blue-700 transition"
-          >
-            Save Profile
+      <button
+        onClick={saveProfile}
+        disabled={loading}
+        className="w-full bg-green-600 p-4 rounded-xl font-bold mb-4"
+      >
+        {loading ? "Saving..." : "Save Profile"}
+      </button>
+
+      {/* Technician only */}
+      {role === "technician" && (
+        <>
+          <button className="w-full bg-blue-600 p-4 rounded-xl font-bold mb-4">
+            ✔️ Get Verified Badge (5,000 Frw)
           </button>
-        </div>
-      </div>
+
+          <button className="w-full bg-yellow-500 text-black p-4 rounded-xl font-bold mb-4">
+            👑 Activate Gold Subscription (10,000 Frw)
+          </button>
+        </>
+      )}
+
+      <Link
+        href="/technicians"
+        className="block w-full bg-purple-600 p-4 rounded-xl font-bold text-center mb-4"
+      >
+        Connect to Technician
+      </Link>
+
+      <Link
+        href="/patients"
+        className="block w-full bg-pink-600 p-4 rounded-xl font-bold text-center mb-4"
+      >
+        Connect to Patient
+      </Link>
+
+      <Link
+        href="/"
+        className="block w-full bg-gray-700 p-4 rounded-xl font-bold text-center mb-4"
+      >
+        Home
+      </Link>
+
+      <button
+        onClick={logout}
+        className="w-full bg-red-600 p-4 rounded-xl font-bold"
+      >
+        Logout
+      </button>
+
     </main>
   );
 }

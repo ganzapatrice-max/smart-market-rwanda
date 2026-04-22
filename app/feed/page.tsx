@@ -1,34 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { auth, db } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 
 import {
-  addDoc,
   collection,
-  serverTimestamp,
-  onSnapshot,
   query,
   orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 
-import { onAuthStateChanged } from "firebase/auth";
-
 export default function FeedPage() {
-  const [user, setUser] = useState<any>(null);
-  const [text, setText] = useState("");
   const [posts, setPosts] = useState<any[]>([]);
-
-  //////////////////////////////////////////////////////
-  // LOGIN
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
-
-    return () => unsub();
-  }, []);
 
   //////////////////////////////////////////////////////
   // LOAD POSTS
@@ -40,87 +27,145 @@ export default function FeedPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const arr: any[] = [];
 
-      setPosts(data);
+      snap.forEach((docu) => {
+        arr.push({
+          id: docu.id,
+          ...docu.data(),
+        });
+      });
+
+      setPosts(arr);
     });
 
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // CREATE POST
+  // LIKE
   //////////////////////////////////////////////////////
-  const createPost = async () => {
-    if (!user) {
-      alert("Login first");
-      return;
-    }
-
-    if (!text.trim()) {
-      alert("Write something");
-      return;
-    }
-
-    await addDoc(collection(db, "posts"), {
-      userId: user.uid,
-      name: user.displayName || "User",
-      text,
-      likes: 0,
-      createdAt: serverTimestamp(),
+  const likePost = async (id: string) => {
+    await updateDoc(doc(db, "posts", id), {
+      likes: increment(1),
     });
+  };
 
-    setText("");
+  //////////////////////////////////////////////////////
+  // SHARE
+  //////////////////////////////////////////////////////
+  const sharePost = async () => {
+    navigator.share?.({
+      title: "Smart Market Rwanda",
+      url: window.location.href,
+    });
   };
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-black text-white p-5">
+    <main className="min-h-screen bg-[#07111a] text-white p-6">
+      <div className="max-w-3xl mx-auto">
 
-      <h1 className="text-3xl font-bold mb-5">
-        📱 Community Feed
-      </h1>
+        {/* TOP */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">
+            Smart Feed
+          </h1>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="What's happening?"
-        className="w-full p-4 rounded-xl text-black mb-4"
-      />
-
-      <button
-        onClick={createPost}
-        className="w-full bg-blue-600 p-4 rounded-xl font-bold mb-6"
-      >
-        Post Now
-      </button>
-
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className="bg-[#111827] p-5 rounded-2xl"
+          <Link
+            href="/post"
+            className="bg-green-600 px-5 py-3 rounded-full"
           >
-            <p className="font-bold">
-              {post.name}
-            </p>
+            Create Post
+          </Link>
+        </div>
 
-            <p className="mt-2">
-              {post.text}
-            </p>
+        {/* POSTS */}
+        <div className="space-y-6">
 
-            <p className="text-gray-400 mt-3 text-sm">
-              ❤️ {post.likes}
-            </p>
-          </div>
-        ))}
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="bg-[#0f172a] rounded-3xl p-6"
+            >
+              {/* USER */}
+              <div className="flex items-center gap-4 mb-4">
+
+                <img
+                  src={
+                    post.photo ||
+                    "/default-avatar.png"
+                  }
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+
+                <div>
+                  <h2 className="font-bold text-lg">
+                    {post.name}
+                  </h2>
+
+                  <p className="text-gray-400 text-sm">
+                    {post.type}
+                  </p>
+                </div>
+              </div>
+
+              {/* TEXT */}
+              {post.text && (
+                <p className="mb-4 text-lg">
+                  {post.text}
+                </p>
+              )}
+
+              {/* MEDIA */}
+              {post.media && (
+                <>
+                  {post.media.includes(".mp4") ? (
+                    <video
+                      src={post.media}
+                      controls
+                      className="rounded-2xl w-full"
+                    />
+                  ) : (
+                    <img
+                      src={post.media}
+                      className="rounded-2xl w-full"
+                    />
+                  )}
+                </>
+              )}
+
+              {/* ACTIONS */}
+              <div className="grid grid-cols-3 gap-4 mt-6">
+
+                <button
+                  onClick={() => likePost(post.id)}
+                  className="bg-red-600 py-3 rounded-full"
+                >
+                  ❤️ {post.likes || 0}
+                </button>
+
+                <button
+                  className="bg-blue-600 py-3 rounded-full"
+                >
+                  💬 Comment
+                </button>
+
+                <button
+                  onClick={sharePost}
+                  className="bg-green-600 py-3 rounded-full"
+                >
+                  🔁 Share
+                </button>
+
+              </div>
+            </div>
+          ))}
+
+        </div>
       </div>
-
     </main>
   );
 }

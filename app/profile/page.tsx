@@ -10,7 +10,8 @@ import Link from "next/link";
 export default function ProfilePage() {
   const router = useRouter();
 
-  const [uid, setUid] = useState("");
+  const [user, setUser] = useState<any>(null);
+
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
@@ -22,15 +23,15 @@ export default function ProfilePage() {
   // LOAD USER
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
         router.push("/login");
         return;
       }
 
-      setUid(user.uid);
+      setUser(u);
 
-      const ref = doc(db, "users", user.uid);
+      const ref = doc(db, "users", u.uid);
       const snap = await getDoc(ref);
 
       if (snap.exists()) {
@@ -50,11 +51,13 @@ export default function ProfilePage() {
   // SAVE PROFILE
   //////////////////////////////////////////////////////
   const saveProfile = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
 
       await setDoc(
-        doc(db, "users", uid),
+        doc(db, "users", user.uid),
         {
           name,
           location,
@@ -80,19 +83,21 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  if (!user) return null;
+
   return (
     <main className="min-h-screen bg-black text-white p-5">
-
       <h1 className="text-3xl font-bold mb-6">
         ✎ My Profile
       </h1>
 
+      {/* FIXED LINK */}
       <Link
-  href={`/profile/${user.uid}`}
-  className="bg-indigo-600 py-4 rounded-xl text-center font-bold"
->
-  📸 My Posts
-</Link>
+        href={`/profile/${user.uid}`}
+        className="block w-full bg-indigo-600 py-4 rounded-xl text-center font-bold mb-4"
+      >
+        📸 My Posts
+      </Link>
 
       {/* NAME */}
       <input
@@ -180,7 +185,6 @@ export default function ProfilePage() {
       >
         Logout
       </button>
-
     </main>
   );
 }

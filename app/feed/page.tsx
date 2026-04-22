@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { auth, db } from "@/app/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import Comments from "@/app/components/Comments";
 import FollowButton from "@/app/components/FollowButton";
 

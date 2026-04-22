@@ -306,32 +306,59 @@ export default function ProfilePage() {
               rows={4}
               className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
             />
+<div className="grid md:grid-cols-3 gap-4 mt-6">
 
-            <div className="grid md:grid-cols-3 gap-4 mt-6">
+  {/* SAVE */}
+  <button
+    onClick={saveProfile}
+    disabled={saving}
+    className="bg-green-600 py-4 rounded-xl font-bold"
+  >
+    {saving ? "Saving..." : "Save Profile"}
+  </button>
 
-              <button
-                onClick={saveProfile}
-                disabled={saving}
-                className="bg-green-600 py-4 rounded-xl font-bold"
-              >
-                {saving ? "Saving..." : "Save Profile"}
-              </button>
+  {/* SETTINGS */}
+  <Link
+    href="/settings"
+    className="bg-orange-500 text-center py-4 rounded-xl font-bold"
+  >
+    Settings
+  </Link>
 
-              <button
-                onClick={activateVerified}
-                className="bg-blue-600 py-4 rounded-xl font-bold"
-              >
-                ✔ Verified Badge
-              </button>
+  {/* TECHNICIAN ONLY */}
+  {role === "technician" ? (
+    <>
+      <button
+        onClick={activateVerified}
+        className="bg-blue-600 py-4 rounded-xl font-bold"
+      >
+        ✔ Verified Badge
+      </button>
 
-              <Link
-                href="/settings"
-                className="bg-orange-500 text-center py-4 rounded-xl font-bold"
-              >
-                Settings
-              </Link>
+      <Link
+        href="/subscriptions"
+        className="bg-yellow-500 text-center py-4 rounded-xl font-bold text-black"
+      >
+        👑 Subscription
+      </Link>
+    </>
+  ) : (
+    <>
+      {/* PATIENT ONLY */}
+      <Link
+        href="/workers/technicians"
+        className="bg-purple-600 text-center py-4 rounded-xl font-bold"
+      >
+        Find Technician
+      </Link>
 
-            </div>
+      <div className="bg-gray-700 py-4 rounded-xl text-center font-bold">
+        Patient Account
+      </div>
+    </>
+  )}
+
+
 
           </div>
 

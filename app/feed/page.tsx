@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { auth, db } from "../../lib/firebase";
+
+import { auth, db } from "@/app/lib/firebase";
 import Comments from "@/app/components/Comments";
-import FollowButton from "@/app/component/FollowButton";
+import FollowButton from "@/app/components/FollowButton";
 
 import {
   collection,
@@ -55,9 +56,13 @@ export default function FeedPage() {
   // LIKE
   //////////////////////////////////////////////////////
   const likePost = async (id: string) => {
-    await updateDoc(doc(db, "posts", id), {
-      likes: increment(1),
-    });
+    try {
+      await updateDoc(doc(db, "posts", id), {
+        likes: increment(1),
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   //////////////////////////////////////////////////////
@@ -65,7 +70,12 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   const deletePost = async (id: string) => {
     if (!confirm("Delete this post?")) return;
-    await deleteDoc(doc(db, "posts", id));
+
+    try {
+      await deleteDoc(doc(db, "posts", id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   //////////////////////////////////////////////////////
@@ -88,11 +98,15 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   const sharePost = async () => {
     try {
-      await navigator.share({
-        title: "Smart Market Rwanda",
-        url: window.location.href,
-      });
-    } catch {}
+      if (navigator.share) {
+        await navigator.share({
+          title: "Smart Market Rwanda",
+          url: window.location.href,
+        });
+      }
+    } catch (err) {
+      console.log("Share cancelled");
+    }
   };
 
   //////////////////////////////////////////////////////
@@ -105,10 +119,6 @@ export default function FeedPage() {
         {/* TOP */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Smart Feed</h1>
-
-          <Link href={`/profile/${post.userId}`}>
-  View Profile
-</Link>
 
           <Link
             href="/post"
@@ -145,7 +155,6 @@ export default function FeedPage() {
             >
               {/* HEADER */}
               <div className="flex justify-between items-center">
-                <FollowButton targetUserId={post.userId} />
 
                 <div className="flex items-center gap-3">
                   <img
@@ -157,20 +166,32 @@ export default function FeedPage() {
                     <h2 className="font-semibold">
                       {post.name || "User"}
                     </h2>
+
                     <p className="text-xs text-gray-400">
                       {timeAgo(post.createdAt)}
                     </p>
                   </div>
                 </div>
 
-                {user?.uid === post.userId && (
-                  <button
-                    onClick={() => deletePost(post.id)}
-                    className="text-red-500 text-sm"
+                <div className="flex items-center gap-2">
+                  <FollowButton targetUserId={post.userId} />
+
+                  <Link
+                    href={`/profile/${post.userId}`}
+                    className="text-xs text-blue-400"
                   >
-                    🗑 Delete
-                  </button>
-                )}
+                    View
+                  </Link>
+
+                  {user?.uid === post.userId && (
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="text-red-500 text-sm"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* TEXT */}
@@ -206,9 +227,9 @@ export default function FeedPage() {
                   ❤️ {post.likes || 0}
                 </button>
 
-                <button className="text-blue-400">
+                <span className="text-blue-400">
                   💬 {post.comments || 0}
-                </button>
+                </span>
 
                 <button
                   onClick={sharePost}
@@ -218,7 +239,7 @@ export default function FeedPage() {
                 </button>
               </div>
 
-              {/* COMMENTS COMPONENT */}
+              {/* COMMENTS */}
               <Comments postId={post.id} />
 
             </div>

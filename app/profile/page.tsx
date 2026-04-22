@@ -87,6 +87,13 @@ export default function ProfilePage() {
         ✎ My Profile
       </h1>
 
+      <Link
+  href={`/profile/${user.uid}`}
+  className="bg-indigo-600 py-4 rounded-xl text-center font-bold"
+>
+  📸 My Posts
+</Link>
+
       {/* NAME */}
       <input
         value={name}

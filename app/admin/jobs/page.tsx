@@ -1,7 +1,10 @@
 "use client";
 
+"use client";
+
 import { useEffect, useState } from "react";
-import { db } from "../../lib/firebase";
+import { db } from "../../../lib/firebase";
+
 import {
   collection,
   onSnapshot,
@@ -10,8 +13,8 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import Link from "next/link";
 
+import Link from "next/link";
 export default function JobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
 

@@ -204,6 +204,21 @@ export default function ProfilePage() {
               </button>
             </div>
 
+            <Link
+  href="/post"
+  className="bg-green-600 text-center py-3 rounded-xl font-bold"
+>
+  ➕ Create Post
+</Link>
+
+
+  <Link
+    href="/feed"
+    className="bg-blue-600 flex items-center justify-center gap-2 py-3 rounded-xl font-bold hover:bg-blue-700"
+  >
+    📰 <span>Feed</span>
+  </Link>
+
             {/* QUICK BUTTONS */}
             <div className="grid grid-cols-2 gap-3 mt-6">
 

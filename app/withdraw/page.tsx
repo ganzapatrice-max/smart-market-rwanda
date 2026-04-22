@@ -9,7 +9,10 @@ import {
   serverTimestamp,
   doc,
   getDoc,
+  updateDoc,
+  increment
 } from "firebase/firestore";
+
 import { useRouter } from "next/navigation";
 
 export default function WithdrawPage() {
@@ -17,6 +20,7 @@ export default function WithdrawPage() {
 
   const [uid, setUid] = useState("");
   const [name, setName] = useState("");
+  const [balance, setBalance] = useState(0);
 
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("MTN");
@@ -52,11 +56,11 @@ export default function WithdrawPage() {
         );
 
         if (snap.exists()) {
-          const data = snap.data();
-          setName(data.name || "User");
-        } else {
-          setName("User");
-        }
+  const data = snap.data();
+
+  setName(data.name || "User");
+  setBalance(data.balance || 0);
+}
       }
     );
 
@@ -72,6 +76,17 @@ export default function WithdrawPage() {
         alert("Enter amount");
         return;
       }
+      const money = Number(amount);
+
+if (money <= 0) {
+  alert("Invalid amount");
+  return;
+}
+
+if (money > balance) {
+  alert("Insufficient wallet balance");
+  return;
+}
 
       if (method === "MTN" || method === "Airtel") {
         if (!fullName || !phone || !idNo) {
@@ -114,6 +129,13 @@ export default function WithdrawPage() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+            await updateDoc(doc(db, "users", uid), {
+  balance: increment(-money),
+  totalWithdrawn: increment(money),
+});
+
+setBalance(balance - money);
+
 
       alert("Withdrawal request sent!");
 
@@ -132,6 +154,7 @@ export default function WithdrawPage() {
       setLoading(false);
     }
   };
+  
 
   //////////////////////////////////////////////////////
   // UI
@@ -145,6 +168,9 @@ export default function WithdrawPage() {
           💸 Withdraw Money
         </h1>
 
+<p className="text-green-400 text-center mb-4">
+  Wallet Balance: {balance} FRW
+</p>
         <p className="text-center text-gray-400 mt-2 mb-6">
           Request payout safely
         </p>

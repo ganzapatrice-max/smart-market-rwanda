@@ -6,6 +6,8 @@ import { db, auth } from "../../lib/firebase";
 import {
   collection,
   getDocs,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import {
@@ -45,9 +47,7 @@ export default function TechniciansPage() {
         auth,
         (user) => {
           if (user?.email) {
-            setMyEmail(
-              user.email
-            );
+            setMyEmail(user.email);
           }
         }
       );
@@ -94,13 +94,9 @@ export default function TechniciansPage() {
             technicians
           );
         } catch (error) {
-          console.log(
-            error
-          );
+          console.log(error);
         } finally {
-          setLoading(
-            false
-          );
+          setLoading(false);
         }
       };
 
@@ -108,6 +104,69 @@ export default function TechniciansPage() {
       loadUsers();
     }
   }, [myEmail]);
+
+  //////////////////////////////////////////////////////
+  // BOOK TECHNICIAN
+  //////////////////////////////////////////////////////
+  const bookNow = async (
+    tech: Technician
+  ) => {
+    const user =
+      auth.currentUser;
+
+    if (!user) {
+      alert(
+        "Login first"
+      );
+      return;
+    }
+
+    try {
+      await addDoc(
+        collection(
+          db,
+          "jobs"
+        ),
+        {
+          customerId:
+            user.uid,
+          customerName:
+            user.displayName ||
+            "Customer",
+
+          technicianId:
+            tech.id,
+          technicianName:
+            tech.name ||
+            "Technician",
+
+          service:
+            tech.service ||
+            "Service",
+
+          location:
+            tech.location ||
+            "",
+
+          price: 10000,
+
+          status:
+            "pending",
+
+          createdAt:
+            serverTimestamp(),
+        }
+      );
+
+      alert(
+        "Booking sent successfully"
+      );
+    } catch (error) {
+      alert(
+        "Failed to book"
+      );
+    }
+  };
 
   //////////////////////////////////////////////////////
   // SEARCH
@@ -164,21 +223,51 @@ export default function TechniciansPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((user) => (
-  <Link
-    key={user.id}
-    href={`/chat/${encodeURIComponent(user.id)}`}
-    className="block bg-[#202c33] p-4 rounded-xl hover:bg-[#2a3942]"
-  >
-    <h2 className="font-bold text-lg">
-      {user.name || "No Name"}
-    </h2>
+          {filtered.map(
+            (user) => (
+              <div
+                key={
+                  user.id
+                }
+                className="bg-[#202c33] p-4 rounded-xl"
+              >
+                <h2 className="font-bold text-lg">
+                  {user.name ||
+                    "No Name"}
+                </h2>
 
-    <p className="text-sm text-gray-400">
-      {user.service || "No Skill"} • {user.location || "No Location"}
-    </p>
-  </Link>
-))}
+                <p className="text-sm text-gray-400 mb-3">
+                  {user.service ||
+                    "No Skill"}{" "}
+                  •{" "}
+                  {user.location ||
+                    "No Location"}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    href={`/chat/${encodeURIComponent(
+                      user.id
+                    )}`}
+                    className="bg-blue-600 text-center p-3 rounded-xl font-bold"
+                  >
+                    Chat
+                  </Link>
+
+                  <button
+                    onClick={() =>
+                      bookNow(
+                        user
+                      )
+                    }
+                    className="bg-green-600 p-3 rounded-xl font-bold"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              </div>
+            )
+          )}
         </div>
       )}
     </main>

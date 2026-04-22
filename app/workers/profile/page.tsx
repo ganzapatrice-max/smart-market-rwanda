@@ -91,10 +91,10 @@ export default function ProfilePage() {
         { merge: true }
       );
 
-      setMsg("✅ Everything saved successfully");
+      setMsg("✅ Profile saved successfully");
       setEditing(false);
     } catch (error) {
-      setMsg("❌ Failed to save");
+      setMsg("❌ Failed to save profile");
     }
 
     setSaving(false);
@@ -114,7 +114,7 @@ export default function ProfilePage() {
     });
 
     setVerified(true);
-    setMsg("✔️ Verified Badge Activated");
+    setMsg("✔ Verified Badge Activated");
   };
 
   //////////////////////////////////////////////////////
@@ -126,6 +126,33 @@ export default function ProfilePage() {
   };
 
   //////////////////////////////////////////////////////
+  // PHOTO UPLOAD
+  //////////////////////////////////////////////////////
+  const uploadPhoto = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMsg("Uploading photo...");
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "quickfix");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
+      {
+        method: "POST",
+        body: data,
+      }
+    );
+
+    const result = await res.json();
+
+    setPhoto(result.secure_url);
+    setMsg("✅ Photo uploaded");
+  };
+
+  //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
@@ -134,30 +161,36 @@ export default function ProfilePage() {
 
         {/* TOP */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Smart Market Rwanda</h1>
-          <p className="text-green-400 font-semibold">Trusted Platform RW</p>
+          <h1 className="text-3xl font-bold">
+            Smart Market Rwanda
+          </h1>
+
+          <p className="text-green-400 font-semibold">
+            Trusted Platform RW
+          </p>
         </div>
 
-        {/* GRID */}
         <div className="grid md:grid-cols-3 gap-6">
 
           {/* LEFT CARD */}
-          <div className="bg-[#0f172a] rounded-2xl p-6">
+          <div className="bg-[#0f172a] rounded-3xl p-6">
 
             <div className="flex flex-col items-center text-center">
 
               <img
                 src={photo || "/default-avatar.png"}
-                className="w-28 h-28 rounded-full object-cover border-4 border-green-500"
+                className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
               />
 
-              <h2 className="mt-4 text-xl font-bold">
+              <h2 className="mt-4 text-2xl font-bold">
                 {name || "User"}
               </h2>
 
-              <p className="text-gray-400 text-sm">{user?.email}</p>
+              <p className="text-gray-400 text-sm">
+                {user?.email}
+              </p>
 
-              {verified && (
+              {verified && role === "technician" && (
                 <div className="mt-3 bg-blue-600 px-4 py-2 rounded-full text-sm">
                   ✔ Verified Badge
                 </div>
@@ -171,39 +204,42 @@ export default function ProfilePage() {
               </button>
             </div>
 
+            {/* QUICK BUTTONS */}
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <Link
-                href="/workers/technicians"
-                className="bg-purple-600 text-center py-3 rounded-xl"
-              >
-                Technicians
-              </Link>
-
-              <Link
-                href="/workers/patients"
-                className="bg-pink-600 text-center py-3 rounded-xl"
-              >
-                Patients
-              </Link>
 
               <Link
                 href="/"
-                className="bg-cyan-600 text-center py-3 rounded-xl"
+                className="bg-cyan-600 text-center py-3 rounded-full"
               >
                 Home
               </Link>
 
               <button
                 onClick={logout}
-                className="bg-red-600 py-3 rounded-xl"
+                className="bg-red-600 py-3 rounded-full"
               >
                 Logout
               </button>
+
+              <Link
+                href="/workers/technicians"
+                className="bg-purple-600 text-center py-3 rounded-full"
+              >
+                Technicians
+              </Link>
+
+              <Link
+                href="/workers/patients"
+                className="bg-pink-600 text-center py-3 rounded-full"
+              >
+                Patients
+              </Link>
+
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="md:col-span-2 bg-[#0f172a] rounded-2xl p-6">
+          {/* RIGHT CARD */}
+          <div className="md:col-span-2 bg-[#0f172a] rounded-3xl p-6">
 
             <h2 className="text-2xl font-bold mb-5">
               My Profile
@@ -215,6 +251,7 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* FORM */}
             <div className="grid md:grid-cols-2 gap-4">
 
               <input
@@ -251,7 +288,7 @@ export default function ProfilePage() {
                 disabled={!editing}
                 value={service}
                 onChange={(e) => setService(e.target.value)}
-                placeholder="Service / Skill"
+                placeholder="Service"
                 className="p-4 rounded-xl bg-[#1e293b]"
               />
 
@@ -261,104 +298,86 @@ export default function ProfilePage() {
                 onChange={(e) => setRole(e.target.value)}
                 className="p-4 rounded-xl bg-[#1e293b]"
               >
-                <option value="technician">Technician</option>
-                <option value="patient">Patient</option>
+                <option value="technician">
+                  Technician
+                </option>
+
+                <option value="patient">
+                  Patient
+                </option>
               </select>
 
-
-
               <input
-  disabled={!editing}
-  type="file"
-  accept="image/*"
-  onChange={async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+                disabled={!editing}
+                type="file"
+                accept="image/*"
+                onChange={uploadPhoto}
+                className="p-4 rounded-xl bg-[#1e293b] md:col-span-2"
+              />
 
-    setMsg("Uploading photo...");
-
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "quickfix");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
-      {
-        method: "POST",
-        body: data,
-      }
-    );
-
-    const result = await res.json();
-
-    setPhoto(result.secure_url);
-    setMsg("✅ Photo uploaded successfully");
-  }}
-  className="p-4 rounded-xl md:col-span-2 bg-[#1e293b]"
-/>
             </div>
 
             <textarea
               disabled={!editing}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="About You"
               rows={4}
+              placeholder="About You"
               className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
             />
-<div className="grid md:grid-cols-3 gap-4 mt-6">
 
-  {/* SAVE */}
-  <button
-    onClick={saveProfile}
-    disabled={saving}
-    className="bg-green-600 py-4 rounded-xl font-bold"
-  >
-    {saving ? "Saving..." : "Save Profile"}
-  </button>
+            {/* BUTTONS */}
+            <div className="grid md:grid-cols-4 gap-4 mt-6">
 
-  {/* SETTINGS */}
-  <Link
-    href="/settings"
-    className="bg-orange-500 text-center py-4 rounded-xl font-bold"
-  >
-    Settings
-  </Link>
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="bg-green-600 py-4 rounded-full font-bold"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
 
-  {/* TECHNICIAN ONLY */}
-  {role === "technician" ? (
-    <>
-      <button
-        onClick={activateVerified}
-        className="bg-blue-600 py-4 rounded-xl font-bold"
-      >
-        ✔ Verified Badge
-      </button>
+              <Link
+                href="/settings"
+                className="bg-orange-500 text-center py-4 rounded-full font-bold"
+              >
+                Settings
+              </Link>
 
-      <Link
-        href="/subscriptions"
-        className="bg-yellow-500 text-center py-4 rounded-xl font-bold text-black"
-      >
-        👑 Subscription
-      </Link>
-    </>
-  ) : (
-    <>
-      {/* PATIENT ONLY */}
-      <Link
-        href="/workers/technicians"
-        className="bg-purple-600 text-center py-4 rounded-xl font-bold"
-      >
-        Find Technician
-      </Link>
+              {role === "technician" && (
+                <>
+                  <button
+                    onClick={activateVerified}
+                    className="bg-blue-600 py-4 rounded-full font-bold"
+                  >
+                    Verified
+                  </button>
 
-      <div className="bg-gray-700 py-4 rounded-xl text-center font-bold">
-        Patient Account
-      </div>
-    </>
-  )}
+                  <Link
+                    href="/subscriptions"
+                    className="bg-yellow-500 text-black text-center py-4 rounded-full font-bold"
+                  >
+                    Subscription
+                  </Link>
+                </>
+              )}
 
-</div>
+              {role === "patient" && (
+                <>
+                  <Link
+                    href="/workers/technicians"
+                    className="bg-purple-600 text-center py-4 rounded-full font-bold"
+                  >
+                    Find Tech
+                  </Link>
+
+                  <div className="bg-gray-700 text-center py-4 rounded-full font-bold">
+                    Patient
+                  </div>
+                </>
+              )}
+
+            </div>
 
           </div>
 

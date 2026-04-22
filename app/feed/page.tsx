@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../lib/firebase";
+import Comments from "@/app/components/Comments";
+import FollowButton from "@/app/component/FollowButton";
 
 import {
   collection,
@@ -13,14 +15,11 @@ import {
   updateDoc,
   deleteDoc,
   increment,
-  addDoc,
-  serverTimestamp,
 } from "firebase/firestore";
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
-  const [comment, setComment] = useState("");
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -29,7 +28,6 @@ export default function FeedPage() {
     const unsub = auth.onAuthStateChanged((u) => {
       setUser(u);
     });
-
     return () => unsub();
   }, []);
 
@@ -43,15 +41,10 @@ export default function FeedPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      let arr: any[] = [];
-
-      snap.forEach((docu) => {
-        arr.push({
-          id: docu.id,
-          ...docu.data(),
-        });
-      });
-
+      const arr = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
       setPosts(arr);
     });
 
@@ -71,32 +64,8 @@ export default function FeedPage() {
   // DELETE
   //////////////////////////////////////////////////////
   const deletePost = async (id: string) => {
-    const ok = confirm("Delete this post?");
-    if (!ok) return;
-
+    if (!confirm("Delete this post?")) return;
     await deleteDoc(doc(db, "posts", id));
-  };
-
-  //////////////////////////////////////////////////////
-  // COMMENT
-  //////////////////////////////////////////////////////
-  const addComment = async (postId: string) => {
-    if (!comment) return;
-
-    await addDoc(
-      collection(db, "posts", postId, "comments"),
-      {
-        name: user?.email || "User",
-        text: comment,
-        createdAt: serverTimestamp(),
-      }
-    );
-
-    await updateDoc(doc(db, "posts", postId), {
-      comments: increment(1),
-    });
-
-    setComment("");
   };
 
   //////////////////////////////////////////////////////
@@ -105,26 +74,25 @@ export default function FeedPage() {
   const timeAgo = (date: any) => {
     if (!date?.seconds) return "Now";
 
-    const now = Date.now();
-    const old = date.seconds * 1000;
+    const diff = Math.floor((Date.now() - date.seconds * 1000) / 1000);
 
-    const diff = Math.floor((now - old) / 1000);
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
 
-    if (diff < 60) return diff + " sec ago";
-    if (diff < 3600) return Math.floor(diff / 60) + " min ago";
-    if (diff < 86400) return Math.floor(diff / 3600) + " hrs ago";
-
-    return Math.floor(diff / 86400) + " days ago";
+    return `${Math.floor(diff / 86400)}d`;
   };
 
   //////////////////////////////////////////////////////
   // SHARE
   //////////////////////////////////////////////////////
   const sharePost = async () => {
-    navigator.share?.({
-      title: "Smart Market Rwanda",
-      url: window.location.href,
-    });
+    try {
+      await navigator.share({
+        title: "Smart Market Rwanda",
+        url: window.location.href,
+      });
+    } catch {}
   };
 
   //////////////////////////////////////////////////////
@@ -136,34 +104,33 @@ export default function FeedPage() {
 
         {/* TOP */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">
-            Smart Feed
-          </h1>
+          <h1 className="text-3xl font-bold">Smart Feed</h1>
+
+          <Link href={`/profile/${post.userId}`}>
+  View Profile
+</Link>
 
           <Link
             href="/post"
-            className="bg-green-600 px-5 py-3 rounded-full"
+            className="bg-green-600 px-5 py-2 rounded-full font-bold hover:bg-green-700"
           >
-            + Create Post
+            ➕ Post
           </Link>
         </div>
 
         {/* REELS */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">
-            Reels Videos
-          </h2>
+        <div className="mb-10">
+          <h2 className="text-lg font-bold mb-3">🎬 Reels</h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-4 overflow-x-auto">
             {posts
               .filter((p) => p.type === "video")
-              .slice(0, 4)
               .map((post) => (
                 <video
                   key={post.id}
                   src={post.media}
+                  className="h-56 w-40 object-cover rounded-2xl"
                   controls
-                  className="rounded-2xl h-56 object-cover w-full"
                 />
               ))}
           </div>
@@ -171,30 +138,26 @@ export default function FeedPage() {
 
         {/* POSTS */}
         <div className="space-y-6">
-
           {posts.map((post) => (
             <div
               key={post.id}
-              className="bg-[#0f172a] rounded-3xl p-6"
+              className="bg-[#0f172a] rounded-2xl p-5 shadow-lg"
             >
-              {/* USER */}
-              <div className="flex justify-between">
+              {/* HEADER */}
+              <div className="flex justify-between items-center">
+                <FollowButton targetUserId={post.userId} />
 
-                <div className="flex gap-4">
+                <div className="flex items-center gap-3">
                   <img
-                    src={
-                      post.photo ||
-                      "/default-avatar.png"
-                    }
-                    className="w-14 h-14 rounded-full"
+                    src={post.photo || "/default-avatar.png"}
+                    className="w-12 h-12 rounded-full"
                   />
 
                   <div>
-                    <h2 className="font-bold">
-                      {post.name}
+                    <h2 className="font-semibold">
+                      {post.name || "User"}
                     </h2>
-
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-xs text-gray-400">
                       {timeAgo(post.createdAt)}
                     </p>
                   </div>
@@ -202,91 +165,66 @@ export default function FeedPage() {
 
                 {user?.uid === post.userId && (
                   <button
-                    onClick={() =>
-                      deletePost(post.id)
-                    }
-                    className="text-red-500"
+                    onClick={() => deletePost(post.id)}
+                    className="text-red-500 text-sm"
                   >
-                    Delete
+                    🗑 Delete
                   </button>
                 )}
               </div>
 
               {/* TEXT */}
               {post.text && (
-                <p className="my-4 text-lg">
-                  {post.text}
-                </p>
+                <p className="my-4 text-[15px]">{post.text}</p>
               )}
 
               {/* MEDIA */}
               {post.media && (
-                <>
+                <div className="mt-3">
                   {post.type === "video" ? (
                     <video
                       src={post.media}
                       controls
-                      className="rounded-2xl w-full"
+                      className="rounded-xl w-full"
                     />
                   ) : (
                     <img
                       src={post.media}
-                      className="rounded-2xl w-full"
+                      className="rounded-xl w-full"
                     />
                   )}
-                </>
+                </div>
               )}
 
               {/* ACTIONS */}
-              <div className="grid grid-cols-3 gap-4 mt-5">
+              <div className="flex justify-between mt-4 text-sm">
 
                 <button
-                  onClick={() =>
-                    likePost(post.id)
-                  }
-                  className="bg-red-600 py-3 rounded-full"
+                  onClick={() => likePost(post.id)}
+                  className="flex items-center gap-1 text-red-400"
                 >
                   ❤️ {post.likes || 0}
                 </button>
 
-                <button className="bg-blue-600 py-3 rounded-full">
+                <button className="text-blue-400">
                   💬 {post.comments || 0}
                 </button>
 
                 <button
                   onClick={sharePost}
-                  className="bg-green-600 py-3 rounded-full"
+                  className="text-green-400"
                 >
                   🔁 Share
                 </button>
-
               </div>
 
-              {/* COMMENT BOX */}
-              <div className="mt-4 flex gap-3">
-                <input
-                  value={comment}
-                  onChange={(e) =>
-                    setComment(e.target.value)
-                  }
-                  placeholder="Write comment..."
-                  className="flex-1 p-3 rounded-xl bg-[#1e293b]"
-                />
-
-                <button
-                  onClick={() =>
-                    addComment(post.id)
-                  }
-                  className="bg-blue-600 px-4 rounded-xl"
-                >
-                  Send
-                </button>
-              </div>
+              {/* COMMENTS COMPONENT */}
+              <Comments postId={post.id} />
 
             </div>
           ))}
-
         </div>
+
       </div>
     </main>
   );

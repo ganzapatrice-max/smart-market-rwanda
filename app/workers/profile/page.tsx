@@ -279,7 +279,7 @@ export default function ProfilePage() {
 
     const data = new FormData();
     data.append("file", file);
-    data.append("upload_preset", "dmebligcw");
+    data.append("upload_preset", "quickfix");
 
     const res = await fetch(
       "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",

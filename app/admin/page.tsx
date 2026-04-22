@@ -88,13 +88,6 @@ export default function AdminPage() {
         </Link>
 
         <Link
-          href="/admin/jobs"
-          className="bg-orange-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
-        >
-          📦 Manage Jobs
-        </Link>
-
-        <Link
           href="/admin/withdrawals"
           className="bg-pink-600 rounded-3xl p-6 font-bold hover:scale-105 duration-200"
         >

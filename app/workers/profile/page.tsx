@@ -265,13 +265,37 @@ export default function ProfilePage() {
                 <option value="patient">Patient</option>
               </select>
 
+
+
               <input
-                disabled={!editing}
-                value={photo}
-                onChange={(e) => setPhoto(e.target.value)}
-                placeholder="Photo URL"
-                className="p-4 rounded-xl md:col-span-2 bg-[#1e293b]"
-              />
+  disabled={!editing}
+  type="file"
+  accept="image/*"
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMsg("Uploading photo...");
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "dmebligcw");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
+      {
+        method: "POST",
+        body: data,
+      }
+    );
+
+    const result = await res.json();
+
+    setPhoto(result.secure_url);
+    setMsg("✅ Photo uploaded successfully");
+  }}
+  className="p-4 rounded-xl md:col-span-2 bg-[#1e293b]"
+/>
             </div>
 
             <textarea

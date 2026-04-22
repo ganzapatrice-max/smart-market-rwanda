@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { db } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 
 import {
   collection,
@@ -11,11 +11,27 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  deleteDoc,
   increment,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [comment, setComment] = useState("");
+
+  //////////////////////////////////////////////////////
+  // LOAD USER
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((u) => {
+      setUser(u);
+    });
+
+    return () => unsub();
+  }, []);
 
   //////////////////////////////////////////////////////
   // LOAD POSTS
@@ -27,7 +43,7 @@ export default function FeedPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const arr: any[] = [];
+      let arr: any[] = [];
 
       snap.forEach((docu) => {
         arr.push({
@@ -49,6 +65,56 @@ export default function FeedPage() {
     await updateDoc(doc(db, "posts", id), {
       likes: increment(1),
     });
+  };
+
+  //////////////////////////////////////////////////////
+  // DELETE
+  //////////////////////////////////////////////////////
+  const deletePost = async (id: string) => {
+    const ok = confirm("Delete this post?");
+    if (!ok) return;
+
+    await deleteDoc(doc(db, "posts", id));
+  };
+
+  //////////////////////////////////////////////////////
+  // COMMENT
+  //////////////////////////////////////////////////////
+  const addComment = async (postId: string) => {
+    if (!comment) return;
+
+    await addDoc(
+      collection(db, "posts", postId, "comments"),
+      {
+        name: user?.email || "User",
+        text: comment,
+        createdAt: serverTimestamp(),
+      }
+    );
+
+    await updateDoc(doc(db, "posts", postId), {
+      comments: increment(1),
+    });
+
+    setComment("");
+  };
+
+  //////////////////////////////////////////////////////
+  // TIME AGO
+  //////////////////////////////////////////////////////
+  const timeAgo = (date: any) => {
+    if (!date?.seconds) return "Now";
+
+    const now = Date.now();
+    const old = date.seconds * 1000;
+
+    const diff = Math.floor((now - old) / 1000);
+
+    if (diff < 60) return diff + " sec ago";
+    if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + " hrs ago";
+
+    return Math.floor(diff / 86400) + " days ago";
   };
 
   //////////////////////////////////////////////////////
@@ -78,8 +144,29 @@ export default function FeedPage() {
             href="/post"
             className="bg-green-600 px-5 py-3 rounded-full"
           >
-            Create Post
+            + Create Post
           </Link>
+        </div>
+
+        {/* REELS */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">
+            Reels Videos
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4">
+            {posts
+              .filter((p) => p.type === "video")
+              .slice(0, 4)
+              .map((post) => (
+                <video
+                  key={post.id}
+                  src={post.media}
+                  controls
+                  className="rounded-2xl h-56 object-cover w-full"
+                />
+              ))}
+          </div>
         </div>
 
         {/* POSTS */}
@@ -91,30 +178,43 @@ export default function FeedPage() {
               className="bg-[#0f172a] rounded-3xl p-6"
             >
               {/* USER */}
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex justify-between">
 
-                <img
-                  src={
-                    post.photo ||
-                    "/default-avatar.png"
-                  }
-                  className="w-14 h-14 rounded-full object-cover"
-                />
+                <div className="flex gap-4">
+                  <img
+                    src={
+                      post.photo ||
+                      "/default-avatar.png"
+                    }
+                    className="w-14 h-14 rounded-full"
+                  />
 
-                <div>
-                  <h2 className="font-bold text-lg">
-                    {post.name}
-                  </h2>
+                  <div>
+                    <h2 className="font-bold">
+                      {post.name}
+                    </h2>
 
-                  <p className="text-gray-400 text-sm">
-                    {post.type}
-                  </p>
+                    <p className="text-gray-400 text-sm">
+                      {timeAgo(post.createdAt)}
+                    </p>
+                  </div>
                 </div>
+
+                {user?.uid === post.userId && (
+                  <button
+                    onClick={() =>
+                      deletePost(post.id)
+                    }
+                    className="text-red-500"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
 
               {/* TEXT */}
               {post.text && (
-                <p className="mb-4 text-lg">
+                <p className="my-4 text-lg">
                   {post.text}
                 </p>
               )}
@@ -122,7 +222,7 @@ export default function FeedPage() {
               {/* MEDIA */}
               {post.media && (
                 <>
-                  {post.media.includes(".mp4") ? (
+                  {post.type === "video" ? (
                     <video
                       src={post.media}
                       controls
@@ -138,19 +238,19 @@ export default function FeedPage() {
               )}
 
               {/* ACTIONS */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-3 gap-4 mt-5">
 
                 <button
-                  onClick={() => likePost(post.id)}
+                  onClick={() =>
+                    likePost(post.id)
+                  }
                   className="bg-red-600 py-3 rounded-full"
                 >
                   ❤️ {post.likes || 0}
                 </button>
 
-                <button
-                  className="bg-blue-600 py-3 rounded-full"
-                >
-                  💬 Comment
+                <button className="bg-blue-600 py-3 rounded-full">
+                  💬 {post.comments || 0}
                 </button>
 
                 <button
@@ -161,6 +261,28 @@ export default function FeedPage() {
                 </button>
 
               </div>
+
+              {/* COMMENT BOX */}
+              <div className="mt-4 flex gap-3">
+                <input
+                  value={comment}
+                  onChange={(e) =>
+                    setComment(e.target.value)
+                  }
+                  placeholder="Write comment..."
+                  className="flex-1 p-3 rounded-xl bg-[#1e293b]"
+                />
+
+                <button
+                  onClick={() =>
+                    addComment(post.id)
+                  }
+                  className="bg-blue-600 px-4 rounded-xl"
+                >
+                  Send
+                </button>
+              </div>
+
             </div>
           ))}
 

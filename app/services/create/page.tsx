@@ -47,12 +47,12 @@ export default function CreateService() {
     <main className="p-6 text-white bg-black min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Create Service</h1>
 
-      <input placeholder="Title" onChange={(e) => setTitle(e.target.value)} className="w-full mb-3 p-3 text-black" />
-      <textarea placeholder="Description" onChange={(e) => setDescription(e.target.value)} className="w-full mb-3 p-3 text-black" />
-      <input placeholder="Price" onChange={(e) => setPrice(e.target.value)} className="w-full mb-3 p-3 text-black" />
-      <input placeholder="Category" onChange={(e) => setCategory(e.target.value)} className="w-full mb-3 p-3 text-black" />
-      <input placeholder="Location" onChange={(e) => setLocation(e.target.value)} className="w-full mb-3 p-3 text-black" />
-      <input placeholder="Phone" onChange={(e) => setPhone(e.target.value)} className="w-full mb-3 p-3 text-black" />
+      <input placeholder="Title" onChange={(e) => setTitle(e.target.value)} className="w-full mb-3 p-3 text-white" />
+      <textarea placeholder="Description" onChange={(e) => setDescription(e.target.value)} className="w-full mb-3 p-3 text-white" />
+      <input placeholder="Price" onChange={(e) => setPrice(e.target.value)} className="w-full mb-3 p-3 text-white" />
+      <input placeholder="Category" onChange={(e) => setCategory(e.target.value)} className="w-full mb-3 p-3 text-white" />
+      <input placeholder="Location" onChange={(e) => setLocation(e.target.value)} className="w-full mb-3 p-3 text-whit" />
+      <input placeholder="Phone" onChange={(e) => setPhone(e.target.value)} className="w-full mb-3 p-3 text-white" />
 
       <button onClick={createService} className="bg-green-600 px-4 py-2 rounded">
         Post Service

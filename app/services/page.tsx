@@ -24,7 +24,7 @@ const [search, setSearch] = useState("");
   placeholder="Search services..."
   value={search}
   onChange={(e) => setSearch(e.target.value)}
-  className="w-full mb-4 p-3 rounded text-black"
+  className="w-full mb-4 p-3 rounded text-white"
 />
 
 

@@ -56,19 +56,17 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-     await setDoc(
-  doc(db, "users", uid),
-  {
-    name,
-    location,
-    bio,
-    role,
-
-    // ✅ ADD THIS
-    photo: "/default-avatar.png",
-  },
-  { merge: true }
-);
+      await setDoc(
+        doc(db, "users", user.uid), // ✅ FIX HERE
+        {
+          name,
+          location,
+          bio,
+          role,
+          photo: "/default-avatar.png",
+        },
+        { merge: true }
+      );
 
       alert("Profile saved!");
     } catch (error) {
@@ -90,11 +88,8 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-5">
-      <h1 className="text-3xl font-bold mb-6">
-        ✎ My Profile
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">✎ My Profile</h1>
 
-      {/* FIXED LINK */}
       <Link
         href={`/profile/${user.uid}`}
         className="block w-full bg-indigo-600 py-4 rounded-xl text-center font-bold mb-4"
@@ -102,7 +97,6 @@ export default function ProfilePage() {
         📸 My Posts
       </Link>
 
-      {/* NAME */}
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -110,7 +104,6 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
-      {/* LOCATION */}
       <input
         value={location}
         onChange={(e) => setLocation(e.target.value)}
@@ -118,7 +111,6 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
-      {/* BIO */}
       <textarea
         value={bio}
         onChange={(e) => setBio(e.target.value)}
@@ -126,7 +118,6 @@ export default function ProfilePage() {
         className="w-full p-4 rounded-xl text-black mb-4"
       />
 
-      {/* ROLE */}
       <select
         value={role}
         onChange={(e) => setRole(e.target.value)}
@@ -136,7 +127,6 @@ export default function ProfilePage() {
         <option value="patient">Patient</option>
       </select>
 
-      {/* SAVE */}
       <button
         onClick={saveProfile}
         disabled={loading}
@@ -145,43 +135,6 @@ export default function ProfilePage() {
         {loading ? "Saving..." : "Save Profile"}
       </button>
 
-      {/* TECHNICIAN ONLY */}
-      {role === "technician" && (
-        <>
-          <button className="w-full bg-blue-600 p-4 rounded-xl font-bold mb-4">
-            ✔️ Get Verified Badge (5,000 Frw)
-          </button>
-
-          <button className="w-full bg-yellow-500 text-black p-4 rounded-xl font-bold mb-4">
-            👑 Activate Gold Subscription (10,000 Frw)
-          </button>
-        </>
-      )}
-
-      {/* CONNECT */}
-      <Link
-        href="/technicians"
-        className="block w-full bg-purple-600 p-4 rounded-xl font-bold text-center mb-4"
-      >
-        Connect to Technician
-      </Link>
-
-      <Link
-        href="/patients"
-        className="block w-full bg-pink-600 p-4 rounded-xl font-bold text-center mb-4"
-      >
-        Connect to Patient
-      </Link>
-
-      {/* HOME */}
-      <Link
-        href="/"
-        className="block w-full bg-gray-700 p-4 rounded-xl font-bold text-center mb-4"
-      >
-        Home
-      </Link>
-
-      {/* LOGOUT */}
       <button
         onClick={logout}
         className="w-full bg-red-600 p-4 rounded-xl font-bold"

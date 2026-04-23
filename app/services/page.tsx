@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 
 export default function ServicesPage() {
   const [services, setServices] = useState<any[]>([]);
-
+const [search, setSearch] = useState("");
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("createdAt", "desc"));
 
@@ -20,10 +20,22 @@ export default function ServicesPage() {
   return (
     <main className="p-6 bg-black text-white min-h-screen">
       <h1 className="text-2xl font-bold mb-6">Services</h1>
+      <input
+  placeholder="Search services..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="w-full mb-4 p-3 rounded text-black"
+/>
 
 
       <div className="space-y-4">
-        {services.map((s) => (
+        {services
+  .filter((s) =>
+    s.title?.toLowerCase().includes(search.toLowerCase()) ||
+    s.category?.toLowerCase().includes(search.toLowerCase()) ||
+    s.location?.toLowerCase().includes(search.toLowerCase())
+  )
+  .map((s) => (
           <div key={s.id} className="bg-gray-800 p-4 rounded-xl">
             <h2 className="text-lg font-bold">{s.title}</h2>
             <p>{s.description}</p>

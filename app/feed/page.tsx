@@ -127,6 +127,13 @@ export default function FeedPage() {
             ➕ Post
           </Link>
         </div>
+        <Link href="/services" className="bg-purple-600 px-4 py-2 rounded">
+  🛠 Services
+</Link>
+
+<Link href="/services/create" className="bg-green-600 px-4 py-2 rounded ml-2">
+  ➕ Add Service
+</Link>
 
         {/* REELS */}
         <div className="mb-10">

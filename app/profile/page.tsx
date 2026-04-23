@@ -56,16 +56,19 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          name,
-          location,
-          bio,
-          role,
-        },
-        { merge: true }
-      );
+     await setDoc(
+  doc(db, "users", uid),
+  {
+    name,
+    location,
+    bio,
+    role,
+
+    // ✅ ADD THIS
+    photo: "/default-avatar.png",
+  },
+  { merge: true }
+);
 
       alert("Profile saved!");
     } catch (error) {

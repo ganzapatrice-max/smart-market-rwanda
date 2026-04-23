@@ -5,12 +5,7 @@ import Link from "next/link";
 import { auth, db } from "../../lib/firebase";
 
 import { onAuthStateChanged } from "firebase/auth";
-
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function PostPage() {
   const [user, setUser] = useState<any>(null);
@@ -26,25 +21,36 @@ export default function PostPage() {
   const [msg, setMsg] = useState("");
 
   //////////////////////////////////////////////////////
-  // AUTH
+  // AUTH + LOAD PROFILE FROM FIRESTORE ✅ FIX
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         window.location.href = "/login";
         return;
       }
 
       setUser(currentUser);
-      setName(currentUser.displayName || "User");
-      setPhoto(currentUser.photoURL || "");
+
+      // 🔥 GET USER DATA FROM FIRESTORE
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        setName(data.name || "User");
+        setPhoto(data.photo || "/default-avatar.png");
+      } else {
+        setName("User");
+        setPhoto("/default-avatar.png");
+      }
     });
 
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // UPLOAD IMAGE / VIDEO CLOUDINARY
+  // UPLOAD FILE
   //////////////////////////////////////////////////////
   const uploadFile = async (e: any) => {
     const file = e.target.files?.[0];
@@ -84,7 +90,7 @@ export default function PostPage() {
         userId: user.uid,
         email: user.email,
         name,
-        photo,
+        photo, // ✅ NOW CORRECT
         text,
         media,
         type,
@@ -113,49 +119,32 @@ export default function PostPage() {
     <main className="min-h-screen bg-[#07111a] text-white p-6">
       <div className="max-w-3xl mx-auto">
 
-        {/* TOP */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">
-            Create Post
-          </h1>
+          <h1 className="text-3xl font-bold">Create Post</h1>
 
-          <Link
-            href="/feed"
-            className="bg-green-600 px-5 py-3 rounded-full"
-          >
+          <Link href="/feed" className="bg-green-600 px-5 py-3 rounded-full">
             Feed
           </Link>
         </div>
 
-        {/* CARD */}
         <div className="bg-[#0f172a] rounded-3xl p-6">
 
           {/* USER */}
           <div className="flex items-center gap-4 mb-6">
-
             <img
-              src={photo || "/default-avatar.png"}
+              src={photo}
               className="w-14 h-14 rounded-full object-cover"
             />
-
             <div>
-              <h2 className="font-bold text-lg">
-                {name}
-              </h2>
-
-              <p className="text-gray-400 text-sm">
-                {user?.email}
-              </p>
+              <h2 className="font-bold text-lg">{name}</h2>
+              <p className="text-gray-400 text-sm">{user?.email}</p>
             </div>
           </div>
 
           {msg && (
-            <div className="mb-4 bg-green-700 p-3 rounded-xl">
-              {msg}
-            </div>
+            <div className="mb-4 bg-green-700 p-3 rounded-xl">{msg}</div>
           )}
 
-          {/* TYPE */}
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -168,7 +157,6 @@ export default function PostPage() {
             <option value="video">Short Video</option>
           </select>
 
-          {/* TEXT */}
           <textarea
             rows={5}
             value={text}
@@ -177,7 +165,6 @@ export default function PostPage() {
             className="w-full p-4 rounded-xl bg-[#1e293b]"
           />
 
-          {/* FILE */}
           <input
             type="file"
             accept="image/*,video/*"
@@ -185,27 +172,17 @@ export default function PostPage() {
             className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
           />
 
-          {/* PREVIEW IMAGE */}
           {media && (
             <div className="mt-4">
               {media.includes(".mp4") ? (
-                <video
-                  src={media}
-                  controls
-                  className="rounded-2xl w-full"
-                />
+                <video src={media} controls className="rounded-2xl w-full" />
               ) : (
-                <img
-                  src={media}
-                  className="rounded-2xl w-full"
-                />
+                <img src={media} className="rounded-2xl w-full" />
               )}
             </div>
           )}
 
-          {/* BUTTONS */}
           <div className="grid grid-cols-2 gap-4 mt-6">
-
             <button
               onClick={createPost}
               disabled={loading}
@@ -220,7 +197,6 @@ export default function PostPage() {
             >
               Open Feed
             </Link>
-
           </div>
 
         </div>

@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import Comments from "@/app/components/Comments";
 import FollowButton from "@/app/components/FollowButton";
+import { useRouter } from "next/navigation";
+const router = useRouter();
+const [search, setSearch] = useState("");
 
 import {
   collection,
@@ -109,6 +112,13 @@ export default function FeedPage() {
     }
   };
 
+  <input
+  placeholder="Search user or service..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="w-full mb-4 p-3 rounded text-black"
+/>
+
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
@@ -141,16 +151,32 @@ export default function FeedPage() {
 
           <div className="flex gap-4 overflow-x-auto">
             {posts
-              .filter((p) => p.type === "video")
-              .map((post) => (
-                <video
-                  key={post.id}
-                  src={post.media}
-                  className="h-56 w-40 object-cover rounded-2xl"
-                  controls
-                />
-              ))}
-          </div>
+  .filter((p) => p.type === "video")
+  .map((post) => (
+    <div key={post.id} className="relative">
+      
+      <video
+        src={post.media}
+        className="h-56 w-40 object-cover rounded-2xl"
+        controls
+      />
+
+      {/* PROFILE */}
+      <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-black/60 p-1 rounded-lg">
+        <img
+          src={post.photo || "/default-avatar.png"}
+          className="w-6 h-6 rounded-full"
+        />
+        <span className="text-xs">{post.name}</span>
+      </div>
+<button
+  onClick={() => router.push(`/search?q=${search}`)}
+  className="bg-blue-600 px-4 py-2 rounded"
+>
+  🔍 Search
+</button>
+    </div>
+))}
         </div>
 
         {/* POSTS */}
@@ -180,8 +206,24 @@ export default function FeedPage() {
                   </div>
                 </div>
 
+                <div className="flex gap-3 mb-4">
+
+  <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
+    🏠 Home
+  </Link>
+
+  <button
+    onClick={() => window.history.back()}
+    className="bg-gray-600 px-4 py-2 rounded"
+  >
+    ⬅ Back
+  </button>
+
+</div>
+
                 <div className="flex items-center gap-2">
                   <FollowButton targetUserId={post.userId} />
+
 
                   <Link
                     href={`/profile/${post.userId}`}

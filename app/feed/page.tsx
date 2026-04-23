@@ -127,7 +127,7 @@ export default function FeedPage() {
             placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-3 rounded text-black"
+            className="flex-1 p-3 rounded text-white"
           />
           <button
             onClick={() => router.push(`/search?q=${search}`)}

@@ -46,6 +46,12 @@ export default function Home() {
           Smart Market Rwanda
         </h1>
 
+<Link
+  href="/feed"
+  className="bg-blue-600 px-6 py-3 rounded-xl font-bold"
+>
+  📰 Open Feed
+</Link>
         {/* BUTTONS */}
         <div className="flex gap-3 flex-wrap">
 

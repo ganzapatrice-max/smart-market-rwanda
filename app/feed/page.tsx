@@ -25,6 +25,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -57,30 +58,6 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // AUTO PLAY (VISIBLE VIDEO ONLY)
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    const videos = document.querySelectorAll("video");
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry: any) => {
-          if (entry.isIntersecting) {
-            entry.target.play();
-          } else {
-            entry.target.pause();
-          }
-        });
-      },
-      { threshold: 0.7 }
-    );
-
-    videos.forEach((video) => observer.observe(video));
-
-    return () => observer.disconnect();
-  }, [posts]);
-
-  //////////////////////////////////////////////////////
   // LIKE
   //////////////////////////////////////////////////////
   const likePost = async (id: string) => {
@@ -111,6 +88,22 @@ export default function FeedPage() {
 
     return `${Math.floor(diff / 86400)}d`;
   };
+
+  //////////////////////////////////////////////////////
+  // FILTER LOGIC
+  //////////////////////////////////////////////////////
+  const filteredPosts = posts.filter((post) => {
+    if (filter === "all") return true;
+
+    if (filter === "text") return post.type === "normal";
+    if (filter === "photo") return post.type === "image";
+    if (filter === "video") return post.type === "video";
+    if (filter === "product") return post.type === "product";
+    if (filter === "service") return post.type === "service";
+    if (filter === "job") return post.type === "job";
+
+    return true;
+  });
 
   //////////////////////////////////////////////////////
   // UI
@@ -161,47 +154,44 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* REELS */}
-        <div className="mb-10">
-          <h2 className="text-lg font-bold mb-3">🎬 Reels</h2>
-
-          <div className="h-screen overflow-y-scroll snap-y snap-mandatory">
-            {posts
-              .filter((p) => p.type === "video")
-              .map((post) => (
-                <div
-                  key={post.id}
-                  className="h-screen snap-start relative"
-                >
+        {/* STORIES / SMALL REELS */}
+        <div className="flex gap-4 overflow-x-auto mb-6">
+          {posts
+            .filter((p) => p.type === "video")
+            .map((post) => (
+              <div key={post.id} className="flex flex-col items-center min-w-[70px]">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
                   <video
                     src={post.media}
-                    className="h-full w-full object-cover"
-                    autoPlay
-                    loop
+                    className="w-full h-full object-cover"
                     muted
                   />
-
-                  {/* USER */}
-                  <div className="absolute bottom-16 left-4 flex items-center gap-2 bg-black/60 p-2 rounded-lg">
-                    <img
-                      src={post.photo || "/default-avatar.png"}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <span>{post.name}</span>
-                  </div>
-
-                  {/* COMMENTS */}
-                  <div className="absolute bottom-16 right-4">
-                    💬 {post.comments || 0}
-                  </div>
                 </div>
-              ))}
-          </div>
+                <span className="text-xs mt-1 truncate w-16 text-center">
+                  {post.name}
+                </span>
+              </div>
+            ))}
+        </div>
+
+        {/* FILTER BUTTONS */}
+        <div className="flex gap-2 overflow-x-auto mb-6">
+          {["all", "text", "photo", "video", "product", "service", "job"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-full ${
+                filter === f ? "bg-blue-600" : "bg-gray-700"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
 
         {/* POSTS */}
         <div className="space-y-6">
-          {posts.map((post) => (
+          {filteredPosts.map((post) => (
             <div key={post.id} className="bg-[#0f172a] rounded-2xl p-5">
 
               {/* HEADER */}

@@ -17,6 +17,7 @@ import {
   updateDoc,
   deleteDoc,
   increment,
+  getDoc, // ✅ added
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -26,6 +27,8 @@ export default function FeedPage() {
   const [user, setUser] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+
+  const [usersMap, setUsersMap] = useState<any>({}); // ✅ NEW
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -53,6 +56,30 @@ export default function FeedPage() {
 
     return () => unsub();
   }, []);
+
+  //////////////////////////////////////////////////////
+  // ✅ LOAD USERS (FIX FOR PHOTO)
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const loadUsers = async () => {
+      const map: any = {};
+
+      for (const post of posts) {
+        if (!map[post.userId]) {
+          const ref = doc(db, "users", post.userId);
+          const snap = await getDoc(ref);
+
+          if (snap.exists()) {
+            map[post.userId] = snap.data();
+          }
+        }
+      }
+
+      setUsersMap(map);
+    };
+
+    if (posts.length) loadUsers();
+  }, [posts]);
 
   //////////////////////////////////////////////////////
   // LIKE
@@ -149,7 +176,7 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* STORIES (SMALL CIRCLES) ✅ FIXED */}
+        {/* STORIES */}
         <div className="flex gap-4 overflow-x-auto mb-6">
           {posts
             .filter((p) => p.type === "video")
@@ -197,8 +224,12 @@ export default function FeedPage() {
               {/* HEADER */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
+                  {/* ✅ FIXED PHOTO */}
                   <img
-                    src={post.photo || "/default-avatar.png"}
+                    src={
+                      usersMap[post.userId]?.photo ||
+                      "/default-avatar.png"
+                    }
                     className="w-12 h-12 rounded-full"
                   />
 

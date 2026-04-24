@@ -159,7 +159,10 @@ export default function FeedPage() {
           {posts
             .filter((p) => p.type === "video")
             .map((post) => (
-              <div key={post.id} className="flex flex-col items-center min-w-[70px]">
+              <div
+  key={post.id}
+  onClick={() => router.push(`/reel/${post.id}`)}
+  className="cursor-pointer"> <className="flex flex-col items-center min-w-[70px]"/>
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
                   <video
                     src={post.media}

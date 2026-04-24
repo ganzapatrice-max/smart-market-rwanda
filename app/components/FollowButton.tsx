@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { db, auth } from "@/lib/firebase";
+
 import {
   doc,
   setDoc,
   deleteDoc,
   getDoc,
+  updateDoc,
+  increment,
   serverTimestamp,
 } from "firebase/firestore";
+
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function FollowButton({
@@ -31,12 +35,12 @@ export default function FollowButton({
   }, []);
 
   //////////////////////////////////////////////////////
-  // CHECK FOLLOW
+  // CHECK IF FOLLOWING
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
 
-    const check = async () => {
+    const checkFollow = async () => {
       const ref = doc(
         db,
         "following",
@@ -49,7 +53,7 @@ export default function FollowButton({
       setFollowing(snap.exists());
     };
 
-    check();
+    checkFollow();
   }, [user, targetUserId]);
 
   //////////////////////////////////////////////////////
@@ -78,16 +82,37 @@ export default function FollowButton({
 
     try {
       if (following) {
+        // UNFOLLOW
         await deleteDoc(myFollowRef);
         await deleteDoc(theirFollowerRef);
+
+        // decrease counters
+        await updateDoc(doc(db, "users", targetUserId), {
+          followers: increment(-1),
+        });
+
+        await updateDoc(doc(db, "users", user.uid), {
+          following: increment(-1),
+        });
+
         setFollowing(false);
       } else {
+        // FOLLOW
         await setDoc(myFollowRef, {
           createdAt: serverTimestamp(),
         });
 
         await setDoc(theirFollowerRef, {
           createdAt: serverTimestamp(),
+        });
+
+        // increase counters
+        await updateDoc(doc(db, "users", targetUserId), {
+          followers: increment(1),
+        });
+
+        await updateDoc(doc(db, "users", user.uid), {
+          following: increment(1),
         });
 
         setFollowing(true);

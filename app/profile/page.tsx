@@ -20,6 +20,8 @@ export default function ProfilePage() {
   const [photo, setPhoto] = useState(""); // ✅ IMPORTANT
 
   const [loading, setLoading] = useState(false);
+  const [followers, setFollowers] = useState(0);
+const [following, setFollowing] = useState(0);
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -35,6 +37,8 @@ export default function ProfilePage() {
 
       const ref = doc(db, "users", u.uid);
       const snap = await getDoc(ref);
+      setFollowers(data.followers || 0);
+setFollowing(data.following || 0);
 
       if (snap.exists()) {
         const data = snap.data();

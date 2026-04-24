@@ -16,12 +16,11 @@ export default function ProfilePage() {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("technician");
-
-  const [photo, setPhoto] = useState(""); // ✅ IMPORTANT
+  const [photo, setPhoto] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [followers, setFollowers] = useState(0);
-const [following, setFollowing] = useState(0);
+  const [following, setFollowing] = useState(0);
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -37,17 +36,19 @@ const [following, setFollowing] = useState(0);
 
       const ref = doc(db, "users", u.uid);
       const snap = await getDoc(ref);
-      setFollowers(data.followers || 0);
-setFollowing(data.following || 0);
 
       if (snap.exists()) {
-        const data = snap.data();
+        const data = snap.data(); // ✅ FIXED
 
         setName(data.name || "");
         setLocation(data.location || "");
         setBio(data.bio || "");
         setRole(data.role || "technician");
-        setPhoto(data.photo || "/default-avatar.png"); // ✅ LOAD PHOTO
+        setPhoto(data.photo || "/default-avatar.png");
+
+        // ✅ FIXED (now inside correct scope)
+        setFollowers(data.followers || 0);
+        setFollowing(data.following || 0);
       } else {
         setPhoto("/default-avatar.png");
       }
@@ -63,21 +64,21 @@ setFollowing(data.following || 0);
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "quickfix");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "quickfix");
 
     const res = await fetch(
       "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
       {
         method: "POST",
-        body: data,
+        body: formData,
       }
     );
 
     const result = await res.json();
 
-    setPhoto(result.secure_url); // ✅ REAL IMAGE URL
+    setPhoto(result.secure_url); // ✅ real image
   };
 
   //////////////////////////////////////////////////////
@@ -96,7 +97,9 @@ setFollowing(data.following || 0);
           location,
           bio,
           role,
-          photo: photo || "/default-avatar.png", // ✅ SAVE UNIQUE PHOTO
+          photo: photo || "/default-avatar.png",
+          followers, // optional keep
+          following, // optional keep
         },
         { merge: true }
       );
@@ -130,13 +133,25 @@ setFollowing(data.following || 0);
         📸 My Posts
       </Link>
 
-      {/* ✅ PROFILE PHOTO */}
+      {/* PROFILE PHOTO */}
       <div className="flex items-center gap-4 mb-4">
         <img
           src={photo || "/default-avatar.png"}
           className="w-16 h-16 rounded-full object-cover"
         />
         <input type="file" onChange={uploadPhoto} />
+      </div>
+
+      {/* FOLLOW STATS */}
+      <div className="flex gap-6 mb-4">
+        <div>
+          <p className="font-bold">{followers}</p>
+          <p className="text-sm text-gray-400">Followers</p>
+        </div>
+        <div>
+          <p className="font-bold">{following}</p>
+          <p className="text-sm text-gray-400">Following</p>
+        </div>
       </div>
 
       <input

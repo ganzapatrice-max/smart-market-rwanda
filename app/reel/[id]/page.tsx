@@ -12,7 +12,9 @@ export default function ReelPage() {
   useEffect(() => {
     const load = async () => {
       const snap = await getDoc(doc(db, "posts", id as string));
-      if (snap.exists()) setPost(snap.data());
+      if (snap.exists()) {
+        setPost(snap.data());
+      }
     };
     load();
   }, [id]);
@@ -20,23 +22,24 @@ export default function ReelPage() {
   if (!post) return null;
 
   return (
-    <main className="h-screen bg-black flex items-center justify-center relative">
-
+    <div className="h-screen bg-black flex items-center justify-center relative">
       <video
         src={post.media}
-        autoPlay
-        controls
         className="h-full w-full object-cover"
+        autoPlay
+        loop
+        muted
+        controls
       />
 
-      <div className="absolute bottom-10 left-4 flex items-center gap-2 bg-black/60 p-2 rounded-lg">
+      {/* USER */}
+      <div className="absolute bottom-10 left-4 flex items-center gap-2 bg-black/60 p-2 rounded-lg text-white">
         <img
           src={post.photo || "/default-avatar.png"}
           className="w-10 h-10 rounded-full"
         />
         <span>{post.name}</span>
       </div>
-
-    </main>
+    </div>
   );
 }

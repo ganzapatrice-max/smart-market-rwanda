@@ -5,13 +5,19 @@ import Link from "next/link";
 import { auth, db } from "../../lib/firebase";
 
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 export default function PostPage() {
   const [user, setUser] = useState<any>(null);
 
   const [name, setName] = useState("");
-  const [photo, setPhoto] = useState("");
+  const [photo, setPhoto] = useState("/default-avatar.png"); // ✅ default first
 
   const [text, setText] = useState("");
   const [media, setMedia] = useState("");
@@ -21,7 +27,7 @@ export default function PostPage() {
   const [msg, setMsg] = useState("");
 
   //////////////////////////////////////////////////////
-  // AUTH + LOAD PROFILE FROM FIRESTORE ✅ FIX
+  // LOAD USER + PROFILE ✅ FIXED
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
@@ -32,16 +38,27 @@ export default function PostPage() {
 
       setUser(currentUser);
 
-      // 🔥 GET USER DATA FROM FIRESTORE
-      const ref = doc(db, "users", currentUser.uid);
-      const snap = await getDoc(ref);
+      try {
+        const ref = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(ref);
 
-      if (snap.exists()) {
-        const data = snap.data();
-        setName(data.name || "User");
-        setPhoto(data.photo || "/default-avatar.png");
-      } else {
-        setName("User");
+        if (snap.exists()) {
+          const data = snap.data();
+
+          setName(data?.name || "User");
+
+          // ✅ IMPORTANT FIX
+          if (data?.photo && data.photo.startsWith("http")) {
+            setPhoto(data.photo);
+          } else {
+            setPhoto("/default-avatar.png");
+          }
+        } else {
+          setName("User");
+          setPhoto("/default-avatar.png");
+        }
+      } catch (err) {
+        console.error("Profile load error:", err);
         setPhoto("/default-avatar.png");
       }
     });
@@ -77,10 +94,11 @@ export default function PostPage() {
   };
 
   //////////////////////////////////////////////////////
-  // CREATE POST
+  // CREATE POST ✅ FIXED
   //////////////////////////////////////////////////////
   const createPost = async () => {
     if (!text && !media) return;
+    if (!user) return;
 
     try {
       setLoading(true);
@@ -89,23 +107,28 @@ export default function PostPage() {
       await addDoc(collection(db, "posts"), {
         userId: user.uid,
         email: user.email,
-        name,
-        photo, // ✅ NOW CORRECT
+
+        name: name || "User",
+        photo: photo || "/default-avatar.png", // ✅ GUARANTEED VALUE
+
         text,
         media,
         type,
+
         likes: 0,
         comments: 0,
         shares: 0,
         createdAt: serverTimestamp(),
       });
 
+      // RESET
       setText("");
       setMedia("");
       setType("normal");
 
       setMsg("✅ Post Published Successfully");
     } catch (error) {
+      console.error(error);
       setMsg("❌ Failed to publish");
     }
 

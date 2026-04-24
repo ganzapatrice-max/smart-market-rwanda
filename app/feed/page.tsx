@@ -41,10 +41,7 @@ export default function FeedPage() {
   // LOAD POSTS
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(
-      collection(db, "posts"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(q, (snap) => {
       const arr = snap.docs.map((d) => ({
@@ -90,18 +87,16 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER LOGIC
+  // FILTER
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
-
     if (filter === "text") return post.type === "normal";
     if (filter === "photo") return post.type === "image";
     if (filter === "video") return post.type === "video";
     if (filter === "product") return post.type === "product";
     if (filter === "service") return post.type === "service";
     if (filter === "job") return post.type === "job";
-
     return true;
   });
 
@@ -154,15 +149,16 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* STORIES / SMALL REELS */}
+        {/* STORIES (SMALL CIRCLES) ✅ FIXED */}
         <div className="flex gap-4 overflow-x-auto mb-6">
           {posts
             .filter((p) => p.type === "video")
             .map((post) => (
               <div
-  key={post.id}
-  onClick={() => router.push(`/reel/${post.id}`)}
-  className="cursor-pointer"> <className="flex flex-col items-center min-w-[70px]"/>
+                key={post.id}
+                onClick={() => router.push(`/reel/${post.id}`)}
+                className="cursor-pointer flex flex-col items-center min-w-[70px]"
+              >
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
                   <video
                     src={post.media}
@@ -170,6 +166,7 @@ export default function FeedPage() {
                     muted
                   />
                 </div>
+
                 <span className="text-xs mt-1 truncate w-16 text-center">
                   {post.name}
                 </span>
@@ -177,7 +174,7 @@ export default function FeedPage() {
             ))}
         </div>
 
-        {/* FILTER BUTTONS */}
+        {/* FILTERS */}
         <div className="flex gap-2 overflow-x-auto mb-6">
           {["all", "text", "photo", "video", "product", "service", "job"].map((f) => (
             <button

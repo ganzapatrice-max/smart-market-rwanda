@@ -17,17 +17,10 @@ import {
 export default function SignupPage() {
   const router = useRouter();
 
-  const [name, setName] =
-    useState("");
-
-  const [email, setEmail] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   //////////////////////////////////////////////////////
   // SIGNUP FUNCTION
@@ -41,17 +34,16 @@ export default function SignupPage() {
 
       setLoading(true);
 
-      const res =
-        await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+      const res = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
       const user = res.user;
 
       //////////////////////////////////////////////////////
-      // CREATE FIRESTORE PROFILE
+      // ✅ CREATE FIRESTORE PROFILE (FIXED)
       //////////////////////////////////////////////////////
       await setDoc(
         doc(db, "users", user.uid),
@@ -62,11 +54,15 @@ export default function SignupPage() {
           role: "patient",
           blocked: false,
           createdAt: Date.now(),
+
+          // ✅ IMPORTANT FIXES
+          photo: "",          // no default image saved
+          followers: 0,       // for counts
+          following: 0,       // for counts
         }
       );
 
       alert("Account created successfully!");
-
       router.push("/login");
 
     } catch (error: any) {
@@ -98,9 +94,7 @@ export default function SignupPage() {
           type="text"
           placeholder="Full Name"
           value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
+          onChange={(e) => setName(e.target.value)}
           className="w-full p-4 rounded-2xl bg-white text-black mb-4 outline-none"
         />
 
@@ -109,9 +103,7 @@ export default function SignupPage() {
           type="email"
           placeholder="Email Address"
           value={email}
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full p-4 rounded-2xl bg-white text-black mb-4 outline-none"
         />
 
@@ -120,9 +112,7 @@ export default function SignupPage() {
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) =>
-            setPassword(e.target.value)
-          }
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full p-4 rounded-2xl bg-white text-black mb-5 outline-none"
         />
 
@@ -132,16 +122,12 @@ export default function SignupPage() {
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700 p-4 rounded-2xl font-bold transition"
         >
-          {loading
-            ? "Creating..."
-            : "CREATE ACCOUNT"}
+          {loading ? "Creating..." : "CREATE ACCOUNT"}
         </button>
 
         {/* LOGIN */}
         <button
-          onClick={() =>
-            router.push("/login")
-          }
+          onClick={() => router.push("/login")}
           className="w-full mt-4 bg-blue-600 hover:bg-blue-700 p-4 rounded-2xl font-bold transition"
         >
           🔐 Already Have Account? Login

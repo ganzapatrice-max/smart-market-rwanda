@@ -17,6 +17,8 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("technician");
 
+  const [photo, setPhoto] = useState(""); // ✅ IMPORTANT
+
   const [loading, setLoading] = useState(false);
 
   //////////////////////////////////////////////////////
@@ -41,11 +43,38 @@ export default function ProfilePage() {
         setLocation(data.location || "");
         setBio(data.bio || "");
         setRole(data.role || "technician");
+        setPhoto(data.photo || "/default-avatar.png"); // ✅ LOAD PHOTO
+      } else {
+        setPhoto("/default-avatar.png");
       }
     });
 
     return () => unsub();
   }, [router]);
+
+  //////////////////////////////////////////////////////
+  // UPLOAD PHOTO (Cloudinary)
+  //////////////////////////////////////////////////////
+  const uploadPhoto = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "quickfix");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
+      {
+        method: "POST",
+        body: data,
+      }
+    );
+
+    const result = await res.json();
+
+    setPhoto(result.secure_url); // ✅ REAL IMAGE URL
+  };
 
   //////////////////////////////////////////////////////
   // SAVE PROFILE
@@ -57,13 +86,13 @@ export default function ProfilePage() {
       setLoading(true);
 
       await setDoc(
-        doc(db, "users", user.uid), // ✅ FIX HERE
+        doc(db, "users", user.uid),
         {
           name,
           location,
           bio,
           role,
-          photo: "/default-avatar.png",
+          photo: photo || "/default-avatar.png", // ✅ SAVE UNIQUE PHOTO
         },
         { merge: true }
       );
@@ -96,6 +125,15 @@ export default function ProfilePage() {
       >
         📸 My Posts
       </Link>
+
+      {/* ✅ PROFILE PHOTO */}
+      <div className="flex items-center gap-4 mb-4">
+        <img
+          src={photo || "/default-avatar.png"}
+          className="w-16 h-16 rounded-full object-cover"
+        />
+        <input type="file" onChange={uploadPhoto} />
+      </div>
 
       <input
         value={name}

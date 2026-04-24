@@ -57,6 +57,30 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
+  // AUTO PLAY (VISIBLE VIDEO ONLY)
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const videos = document.querySelectorAll("video");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry: any) => {
+          if (entry.isIntersecting) {
+            entry.target.play();
+          } else {
+            entry.target.pause();
+          }
+        });
+      },
+      { threshold: 0.7 }
+    );
+
+    videos.forEach((video) => observer.observe(video));
+
+    return () => observer.disconnect();
+  }, [posts]);
+
+  //////////////////////////////////////////////////////
   // LIKE
   //////////////////////////////////////////////////////
   const likePost = async (id: string) => {
@@ -137,37 +161,38 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* SERVICES LINKS */}
-        <div className="flex gap-2 mb-6">
-          <Link href="/services" className="bg-purple-600 px-4 py-2 rounded">
-            🛠 Services
-          </Link>
-          <Link href="/services/create" className="bg-green-600 px-4 py-2 rounded">
-            ➕ Add Service
-          </Link>
-        </div>
-
         {/* REELS */}
         <div className="mb-10">
           <h2 className="text-lg font-bold mb-3">🎬 Reels</h2>
 
-          <div className="flex gap-4 overflow-x-auto">
+          <div className="h-screen overflow-y-scroll snap-y snap-mandatory">
             {posts
               .filter((p) => p.type === "video")
               .map((post) => (
-                <div key={post.id} className="relative">
+                <div
+                  key={post.id}
+                  className="h-screen snap-start relative"
+                >
                   <video
                     src={post.media}
-                    className="h-56 w-40 object-cover rounded-2xl"
-                    controls
+                    className="h-full w-full object-cover"
+                    autoPlay
+                    loop
+                    muted
                   />
 
-                  <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-black/60 p-1 rounded-lg">
+                  {/* USER */}
+                  <div className="absolute bottom-16 left-4 flex items-center gap-2 bg-black/60 p-2 rounded-lg">
                     <img
                       src={post.photo || "/default-avatar.png"}
-                      className="w-6 h-6 rounded-full"
+                      className="w-8 h-8 rounded-full"
                     />
-                    <span className="text-xs">{post.name}</span>
+                    <span>{post.name}</span>
+                  </div>
+
+                  {/* COMMENTS */}
+                  <div className="absolute bottom-16 right-4">
+                    💬 {post.comments || 0}
                   </div>
                 </div>
               ))}
@@ -225,9 +250,16 @@ export default function FeedPage() {
               {post.media && (
                 <div className="mt-3">
                   {post.type === "video" ? (
-                    <video src={post.media} controls className="rounded-xl w-full" />
+                    <video
+                      src={post.media}
+                      controls
+                      className="rounded-xl w-full"
+                    />
                   ) : (
-                    <img src={post.media} className="rounded-xl w-full" />
+                    <img
+                      src={post.media}
+                      className="rounded-xl w-full"
+                    />
                   )}
                 </div>
               )}

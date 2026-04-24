@@ -17,7 +17,7 @@ import {
   updateDoc,
   deleteDoc,
   increment,
-  getDoc, // ✅ added
+  getDoc,
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -28,7 +28,7 @@ export default function FeedPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const [usersMap, setUsersMap] = useState<any>({}); // ✅ NEW
+  const [usersMap, setUsersMap] = useState<any>({});
 
   //////////////////////////////////////////////////////
   // LOAD USER
@@ -58,22 +58,28 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // ✅ LOAD USERS (FIX FOR PHOTO)
+  // LOAD USERS (FIX PHOTO ISSUE)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const loadUsers = async () => {
       const map: any = {};
 
-      for (const post of posts) {
-        if (!map[post.userId]) {
-          const ref = doc(db, "users", post.userId);
-          const snap = await getDoc(ref);
+      await Promise.all(
+        posts.map(async (post) => {
+          if (!map[post.userId]) {
+            try {
+              const ref = doc(db, "users", post.userId);
+              const snap = await getDoc(ref);
 
-          if (snap.exists()) {
-            map[post.userId] = snap.data();
+              if (snap.exists()) {
+                map[post.userId] = snap.data();
+              }
+            } catch (err) {
+              console.log("User fetch error:", err);
+            }
           }
-        }
-      }
+        })
+      );
 
       setUsersMap(map);
     };
@@ -160,62 +166,6 @@ export default function FeedPage() {
           </Link>
         </div>
 
-        {/* SEARCH */}
-        <div className="flex gap-2 mb-6">
-          <input
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-3 rounded text-white"
-          />
-          <button
-            onClick={() => router.push(`/search?q=${search}`)}
-            className="bg-blue-600 px-4 rounded"
-          >
-            🔍
-          </button>
-        </div>
-
-        {/* STORIES */}
-        <div className="flex gap-4 overflow-x-auto mb-6">
-          {posts
-            .filter((p) => p.type === "video")
-            .map((post) => (
-              <div
-                key={post.id}
-                onClick={() => router.push(`/reel/${post.id}`)}
-                className="cursor-pointer flex flex-col items-center min-w-[70px]"
-              >
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
-                  <video
-                    src={post.media}
-                    className="w-full h-full object-cover"
-                    muted
-                  />
-                </div>
-
-                <span className="text-xs mt-1 truncate w-16 text-center">
-                  {post.name}
-                </span>
-              </div>
-            ))}
-        </div>
-
-        {/* FILTERS */}
-        <div className="flex gap-2 overflow-x-auto mb-6">
-          {["all", "text", "photo", "video", "product", "service", "job"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full ${
-                filter === f ? "bg-blue-600" : "bg-gray-700"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
         {/* POSTS */}
         <div className="space-y-6">
           {filteredPosts.map((post) => (
@@ -224,17 +174,20 @@ export default function FeedPage() {
               {/* HEADER */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  {/* ✅ FIXED PHOTO */}
+
+                  {/* ✅ ALWAYS LIVE PHOTO */}
                   <img
                     src={
                       usersMap[post.userId]?.photo ||
                       "/default-avatar.png"
                     }
-                    className="w-12 h-12 rounded-full"
+                    className="w-12 h-12 rounded-full object-cover"
                   />
 
                   <div>
-                    <h2 className="font-semibold">{post.name || "User"}</h2>
+                    <h2 className="font-semibold">
+                      {usersMap[post.userId]?.name || post.name || "User"}
+                    </h2>
                     <p className="text-xs text-gray-400">
                       {timeAgo(post.createdAt)}
                     </p>

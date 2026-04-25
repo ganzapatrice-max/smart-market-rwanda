@@ -17,6 +17,7 @@ import {
   updateDoc,
   deleteDoc,
   increment,
+  getDoc,
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -24,16 +25,14 @@ export default function FeedPage() {
 
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
-  const [search, setSearch] = useState("");
+  const [usersMap, setUsersMap] = useState<any>({});
   const [filter, setFilter] = useState("all");
 
   //////////////////////////////////////////////////////
-  // LOAD USER
+  // AUTH
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      setUser(u);
-    });
+    const unsub = auth.onAuthStateChanged((u) => setUser(u));
     return () => unsub();
   }, []);
 
@@ -41,10 +40,7 @@ export default function FeedPage() {
   // LOAD POSTS
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(
-      collection(db, "posts"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(q, (snap) => {
       const arr = snap.docs.map((d) => ({
@@ -56,6 +52,30 @@ export default function FeedPage() {
 
     return () => unsub();
   }, []);
+
+  //////////////////////////////////////////////////////
+  // LOAD USERS (PROFILE LINK FIX)
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const loadUsers = async () => {
+      const map: any = {};
+
+      await Promise.all(
+        posts.map(async (post) => {
+          if (!map[post.userId]) {
+            const snap = await getDoc(doc(db, "users", post.userId));
+            if (snap.exists()) {
+              map[post.userId] = snap.data();
+            }
+          }
+        })
+      );
+
+      setUsersMap(map);
+    };
+
+    if (posts.length) loadUsers();
+  }, [posts]);
 
   //////////////////////////////////////////////////////
   // LIKE
@@ -75,147 +95,98 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // TIME AGO
-  //////////////////////////////////////////////////////
-  const timeAgo = (date: any) => {
-    if (!date?.seconds) return "Now";
-
-    const diff = Math.floor((Date.now() - date.seconds * 1000) / 1000);
-
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-
-    return `${Math.floor(diff / 86400)}d`;
-  };
-
-  //////////////////////////////////////////////////////
-  // FILTER LOGIC
+  // FILTER (KEEP SERVICES)
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
-
-    if (filter === "text") return post.type === "normal";
-    if (filter === "photo") return post.type === "image";
-    if (filter === "video") return post.type === "video";
-    if (filter === "product") return post.type === "product";
-    if (filter === "service") return post.type === "service";
-    if (filter === "job") return post.type === "job";
-
-    return true;
+    return post.type === filter;
   });
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#07111a] text-white p-6">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen bg-[#f0f2f5] text-black">
+      <div className="max-w-xl mx-auto py-4">
 
-        {/* NAV */}
-        <div className="flex gap-3 mb-4">
-          <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
-            🏠 Home
-          </Link>
+        {/* CREATE POST */}
+        <div className="bg-white p-4 rounded-xl mb-4 shadow">
+          <div className="flex gap-3 items-center">
+            <img
+              src={
+                usersMap[user?.uid]?.photo ||
+                "/default-avatar.png"
+              }
+              className="w-10 h-10 rounded-full"
+            />
 
-          <button
-            onClick={() => window.history.back()}
-            className="bg-gray-600 px-4 py-2 rounded"
-          >
-            ⬅ Back
-          </button>
+            <input
+              placeholder="What's on your mind?"
+              className="flex-1 bg-gray-100 rounded-full px-4 py-2"
+              onClick={() => router.push("/post")}
+              readOnly
+            />
+          </div>
         </div>
 
-        {/* TOP */}
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Smart Feed</h1>
-
-          <Link
-            href="/post"
-            className="bg-green-600 px-5 py-2 rounded-full font-bold"
-          >
-            ➕ Post
-          </Link>
-        </div>
-
-        {/* SEARCH */}
-        <div className="flex gap-2 mb-6">
-          <input
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-3 rounded text-white"
-          />
-          <button
-            onClick={() => router.push(`/search?q=${search}`)}
-            className="bg-blue-600 px-4 rounded"
-          >
-            🔍
-          </button>
-        </div>
-
-        {/* STORIES / SMALL REELS */}
-        <div className="flex gap-4 overflow-x-auto mb-6">
+        {/* REELS / STORIES */}
+        <div className="flex gap-3 overflow-x-auto mb-4">
           {posts
             .filter((p) => p.type === "video")
             .map((post) => (
-              <div key={post.id} className="flex flex-col items-center min-w-[70px]">
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
+              <div
+                key={post.id}
+                onClick={() => router.push(`/reel/${post.id}`)}
+                className="min-w-[100px] cursor-pointer"
+              >
+                <div className="rounded-xl overflow-hidden">
                   <video
                     src={post.media}
-                    className="w-full h-full object-cover"
+                    className="h-32 w-full object-cover"
                     muted
                   />
                 </div>
-                <span className="text-xs mt-1 truncate w-16 text-center">
-                  {post.name}
-                </span>
+                <p className="text-xs text-center">
+                  {usersMap[post.userId]?.name || "User"}
+                </p>
               </div>
             ))}
         </div>
 
-        {/* FILTER BUTTONS */}
-        <div className="flex gap-2 overflow-x-auto mb-6">
-          {["all", "text", "photo", "video", "product", "service", "job"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full ${
-                filter === f ? "bg-blue-600" : "bg-gray-700"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
         {/* POSTS */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {filteredPosts.map((post) => (
-            <div key={post.id} className="bg-[#0f172a] rounded-2xl p-5">
+            <div key={post.id} className="bg-white rounded-xl shadow p-4">
 
               {/* HEADER */}
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
+                <div className="flex gap-3 items-center">
+
                   <img
-                    src={post.photo || "/default-avatar.png"}
-                    className="w-12 h-12 rounded-full"
+                    src={
+                      post.photo ||
+                      usersMap[post.userId]?.photo ||
+                      "/default-avatar.png"
+                    }
+                    className="w-10 h-10 rounded-full"
                   />
 
                   <div>
-                    <h2 className="font-semibold">{post.name || "User"}</h2>
-                    <p className="text-xs text-gray-400">
-                      {timeAgo(post.createdAt)}
+                    <p className="font-semibold text-sm">
+                      {usersMap[post.userId]?.name || "User"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {post.type || "post"}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2 items-center">
                   <FollowButton targetUserId={post.userId} />
 
                   <Link
                     href={`/profile/${post.userId}`}
-                    className="text-xs text-blue-400"
+                    className="text-blue-500 text-xs"
                   >
                     View
                   </Link>
@@ -223,7 +194,7 @@ export default function FeedPage() {
                   {user?.uid === post.userId && (
                     <button
                       onClick={() => deletePost(post.id)}
-                      className="text-red-500 text-sm"
+                      className="text-red-500"
                     >
                       🗑
                     </button>
@@ -233,42 +204,44 @@ export default function FeedPage() {
 
               {/* TEXT */}
               {post.text && (
-                <p className="my-4 text-[15px]">{post.text}</p>
+                <p className="my-3 text-sm">{post.text}</p>
               )}
 
               {/* MEDIA */}
               {post.media && (
-                <div className="mt-3">
+                <div className="mt-2">
                   {post.type === "video" ? (
                     <video
                       src={post.media}
                       controls
-                      className="rounded-xl w-full"
+                      className="rounded-lg w-full"
                     />
                   ) : (
                     <img
                       src={post.media}
-                      className="rounded-xl w-full"
+                      className="rounded-lg w-full"
                     />
                   )}
                 </div>
               )}
 
-              {/* ACTIONS */}
-              <div className="flex justify-between mt-4 text-sm">
-                <button
-                  onClick={() => likePost(post.id)}
-                  className="text-red-400"
-                >
-                  ❤️ {post.likes || 0}
-                </button>
-
-                <span className="text-blue-400">
-                  💬 {post.comments || 0}
-                </span>
+              {/* COUNTS */}
+              <div className="flex justify-between text-xs text-gray-500 mt-3">
+                <span>👍 {post.likes || 0}</span>
+                <span>{post.comments || 0} comments</span>
+                <span>{post.shares || 0} shares</span>
               </div>
 
+              {/* ACTION BUTTONS */}
+              <div className="flex justify-around border-t mt-2 pt-2 text-sm">
+                <button onClick={() => likePost(post.id)}>👍 Like</button>
+                <button>💬 Comment</button>
+                <button>↗ Share</button>
+              </div>
+
+              {/* COMMENTS */}
               <Comments postId={post.id} />
+
             </div>
           ))}
         </div>

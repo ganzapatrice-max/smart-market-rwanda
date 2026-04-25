@@ -37,7 +37,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD POSTS
+  // POSTS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -54,7 +54,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD USERS (PROFILE LINK FIX)
+  // USERS (PROFILE LINK FIX)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const loadUsers = async () => {
@@ -95,7 +95,7 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER (KEEP SERVICES)
+  // FILTER (INCLUDES SERVICES)
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
@@ -106,8 +106,21 @@ export default function FeedPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#f0f2f5] text-black">
-      <div className="max-w-xl mx-auto py-4">
+    <main className="min-h-screen bg-[#f0f2f5]">
+
+      {/* TOP NAV */}
+      <div className="bg-blue-600 text-white flex justify-between px-6 py-3">
+        <h1 className="font-bold">Smart Market Rwanda</h1>
+
+        <div className="flex gap-4">
+          <Link href="/">🏠 Home</Link>
+          <Link href="/profile">👤 Profile</Link>
+          <Link href="/services">🛠 Services</Link>
+          <Link href="/notifications">🔔</Link>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto py-4">
 
         {/* CREATE POST */}
         <div className="bg-white p-4 rounded-xl mb-4 shadow">
@@ -129,7 +142,24 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* REELS / STORIES */}
+        {/* FILTER */}
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          {["all", "normal", "video", "image", "service"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full ${
+                filter === f
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* STORIES / REELS */}
         <div className="flex gap-3 overflow-x-auto mb-4">
           {posts
             .filter((p) => p.type === "video")
@@ -159,9 +189,8 @@ export default function FeedPage() {
             <div key={post.id} className="bg-white rounded-xl shadow p-4">
 
               {/* HEADER */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-3 items-center">
-
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex gap-2 items-center">
                   <img
                     src={
                       post.photo ||
@@ -232,8 +261,8 @@ export default function FeedPage() {
                 <span>{post.shares || 0} shares</span>
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="flex justify-around border-t mt-2 pt-2 text-sm">
+              {/* ACTIONS */}
+              <div className="flex justify-around border-t mt-3 pt-2 text-gray-600">
                 <button onClick={() => likePost(post.id)}>👍 Like</button>
                 <button>💬 Comment</button>
                 <button>↗ Share</button>

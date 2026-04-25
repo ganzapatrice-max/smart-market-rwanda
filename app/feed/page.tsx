@@ -54,27 +54,29 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS (PROFILE LINK FIX)
+  // USERS (OPTIMIZED)
   //////////////////////////////////////////////////////
   useEffect(() => {
+    if (!posts.length) return;
+
     const loadUsers = async () => {
-      const map: any = {};
+      const newMap: any = { ...usersMap };
 
       await Promise.all(
         posts.map(async (post) => {
-          if (!map[post.userId]) {
+          if (!newMap[post.userId]) {
             const snap = await getDoc(doc(db, "users", post.userId));
             if (snap.exists()) {
-              map[post.userId] = snap.data();
+              newMap[post.userId] = snap.data();
             }
           }
         })
       );
 
-      setUsersMap(map);
+      setUsersMap(newMap);
     };
 
-    if (posts.length) loadUsers();
+    loadUsers();
   }, [posts]);
 
   //////////////////////////////////////////////////////
@@ -95,7 +97,7 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER (INCLUDES SERVICES)
+  // FILTER
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
@@ -108,11 +110,11 @@ export default function FeedPage() {
   return (
     <main className="min-h-screen bg-[#f0f2f5]">
 
-      {/* TOP NAV */}
-      <div className="bg-blue-600 text-white flex justify-between px-6 py-3">
-        <h1 className="font-bold">Smart Market Rwanda</h1>
+      {/* NAVBAR */}
+      <div className="bg-blue-600 text-white flex justify-between px-6 py-3 sticky top-0 z-50">
+        <h1 className="font-semibold text-lg">Smart Market Rwanda</h1>
 
-        <div className="flex gap-4">
+        <div className="flex gap-5 text-sm">
           <Link href="/">🏠 Home</Link>
           <Link href="/profile">👤 Profile</Link>
           <Link href="/services">🛠 Services</Link>
@@ -120,14 +122,14 @@ export default function FeedPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto py-4">
+      <div className="max-w-2xl mx-auto py-4 px-2">
 
         {/* CREATE POST */}
-        <div className="bg-white p-4 rounded-xl mb-4 shadow">
+        <div className="bg-white p-4 rounded-xl mb-4 shadow-sm">
           <div className="flex gap-3 items-center">
             <img
               src={
-                usersMap[user?.uid]?.photo ||
+                (user && usersMap[user.uid]?.photo) ||
                 "/default-avatar.png"
               }
               className="w-10 h-10 rounded-full"
@@ -135,7 +137,7 @@ export default function FeedPage() {
 
             <input
               placeholder="What's on your mind?"
-              className="flex-1 bg-gray-100 rounded-full px-4 py-2"
+              className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm"
               onClick={() => router.push("/post")}
               readOnly
             />
@@ -144,11 +146,11 @@ export default function FeedPage() {
 
         {/* FILTER */}
         <div className="flex gap-2 mb-4 overflow-x-auto">
-          {["all", "normal", "video", "image", "service"].map((f) => (
+          {["all", "normal", "image", "video", "service"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full ${
+              className={`px-3 py-1 rounded-full text-sm ${
                 filter === f
                   ? "bg-blue-600 text-white"
                   : "bg-gray-200"
@@ -159,7 +161,7 @@ export default function FeedPage() {
           ))}
         </div>
 
-        {/* STORIES / REELS */}
+        {/* STORIES */}
         <div className="flex gap-3 overflow-x-auto mb-4">
           {posts
             .filter((p) => p.type === "video")
@@ -176,6 +178,7 @@ export default function FeedPage() {
                     muted
                   />
                 </div>
+
                 <p className="text-xs text-center">
                   {usersMap[post.userId]?.name || "User"}
                 </p>
@@ -186,10 +189,10 @@ export default function FeedPage() {
         {/* POSTS */}
         <div className="space-y-4">
           {filteredPosts.map((post) => (
-            <div key={post.id} className="bg-white rounded-xl shadow p-4">
+            <div key={post.id} className="bg-white rounded-xl shadow-sm p-4">
 
               {/* HEADER */}
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center">
                 <div className="flex gap-2 items-center">
                   <img
                     src={
@@ -262,7 +265,7 @@ export default function FeedPage() {
               </div>
 
               {/* ACTIONS */}
-              <div className="flex justify-around border-t mt-3 pt-2 text-gray-600">
+              <div className="flex justify-around border-t mt-3 pt-2 text-sm text-gray-600">
                 <button onClick={() => likePost(post.id)}>👍 Like</button>
                 <button>💬 Comment</button>
                 <button>↗ Share</button>

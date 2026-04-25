@@ -17,7 +17,6 @@ import {
   updateDoc,
   deleteDoc,
   increment,
-  getDoc,
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -25,28 +24,27 @@ export default function FeedPage() {
 
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
-  const [usersMap, setUsersMap] = useState<any>({});
+  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  // EDIT STATES
-  const [editingPost, setEditingPost] = useState<any>(null);
-  const [newText, setNewText] = useState("");
-  const [newMedia, setNewMedia] = useState("");
-  const [newPhoto, setNewPhoto] = useState("");
-
   //////////////////////////////////////////////////////
-  // AUTH
+  // LOAD USER
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => setUser(u));
+    const unsub = auth.onAuthStateChanged((u) => {
+      setUser(u);
+    });
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // POSTS
+  // LOAD POSTS
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "posts"),
+      orderBy("createdAt", "desc")
+    );
 
     const unsub = onSnapshot(q, (snap) => {
       const arr = snap.docs.map((d) => ({
@@ -58,30 +56,6 @@ export default function FeedPage() {
 
     return () => unsub();
   }, []);
-
-  //////////////////////////////////////////////////////
-  // USERS (LIVE PROFILE LINK)
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    const loadUsers = async () => {
-      const map: any = {};
-
-      await Promise.all(
-        posts.map(async (post) => {
-          if (!map[post.userId]) {
-            const snap = await getDoc(doc(db, "users", post.userId));
-            if (snap.exists()) {
-              map[post.userId] = snap.data();
-            }
-          }
-        })
-      );
-
-      setUsersMap(map);
-    };
-
-    if (posts.length) loadUsers();
-  }, [posts]);
 
   //////////////////////////////////////////////////////
   // LIKE
@@ -101,50 +75,34 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // UPLOAD
+  // TIME AGO
   //////////////////////////////////////////////////////
-  const uploadFile = async (file: File) => {
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "quickfix");
+  const timeAgo = (date: any) => {
+    if (!date?.seconds) return "Now";
 
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dmebligcw/auto/upload",
-      { method: "POST", body: data }
-    );
+    const diff = Math.floor((Date.now() - date.seconds * 1000) / 1000);
 
-    const result = await res.json();
-    return result.secure_url;
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+
+    return `${Math.floor(diff / 86400)}d`;
   };
 
   //////////////////////////////////////////////////////
-  // EDIT POST
-  //////////////////////////////////////////////////////
-  const openEdit = (post: any) => {
-    setEditingPost(post);
-    setNewText(post.text || "");
-    setNewMedia(post.media || "");
-    setNewPhoto(post.photo || "");
-  };
-
-  const saveEdit = async () => {
-    if (!editingPost) return;
-
-    await updateDoc(doc(db, "posts", editingPost.id), {
-      text: newText,
-      media: newMedia,
-      photo: newPhoto, // 🔥 post-only photo
-    });
-
-    setEditingPost(null);
-  };
-
-  //////////////////////////////////////////////////////
-  // FILTER
+  // FILTER LOGIC
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
-    return post.type === filter;
+
+    if (filter === "text") return post.type === "normal";
+    if (filter === "photo") return post.type === "image";
+    if (filter === "video") return post.type === "video";
+    if (filter === "product") return post.type === "product";
+    if (filter === "service") return post.type === "service";
+    if (filter === "job") return post.type === "job";
+
+    return true;
   });
 
   //////////////////////////////////////////////////////
@@ -154,16 +112,54 @@ export default function FeedPage() {
     <main className="min-h-screen bg-[#07111a] text-white p-6">
       <div className="max-w-3xl mx-auto">
 
-        {/* REELS */}
+        {/* NAV */}
+        <div className="flex gap-3 mb-4">
+          <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
+            🏠 Home
+          </Link>
+
+          <button
+            onClick={() => window.history.back()}
+            className="bg-gray-600 px-4 py-2 rounded"
+          >
+            ⬅ Back
+          </button>
+        </div>
+
+        {/* TOP */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold">Smart Feed</h1>
+
+          <Link
+            href="/post"
+            className="bg-green-600 px-5 py-2 rounded-full font-bold"
+          >
+            ➕ Post
+          </Link>
+        </div>
+
+        {/* SEARCH */}
+        <div className="flex gap-2 mb-6">
+          <input
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 p-3 rounded text-white"
+          />
+          <button
+            onClick={() => router.push(`/search?q=${search}`)}
+            className="bg-blue-600 px-4 rounded"
+          >
+            🔍
+          </button>
+        </div>
+
+        {/* STORIES / SMALL REELS */}
         <div className="flex gap-4 overflow-x-auto mb-6">
           {posts
             .filter((p) => p.type === "video")
             .map((post) => (
-              <div
-                key={post.id}
-                onClick={() => router.push(`/reel/${post.id}`)}
-                className="cursor-pointer flex flex-col items-center min-w-[70px]"
-              >
+              <div key={post.id} className="flex flex-col items-center min-w-[70px]">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
                   <video
                     src={post.media}
@@ -171,12 +167,26 @@ export default function FeedPage() {
                     muted
                   />
                 </div>
-
                 <span className="text-xs mt-1 truncate w-16 text-center">
-                  {usersMap[post.userId]?.name || "User"}
+                  {post.name}
                 </span>
               </div>
             ))}
+        </div>
+
+        {/* FILTER BUTTONS */}
+        <div className="flex gap-2 overflow-x-auto mb-6">
+          {["all", "text", "photo", "video", "product", "service", "job"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-full ${
+                filter === f ? "bg-blue-600" : "bg-gray-700"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
 
         {/* POSTS */}
@@ -187,59 +197,44 @@ export default function FeedPage() {
               {/* HEADER */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-
-                  {/* ✅ PRIORITY: post.photo > profile.photo */}
                   <img
-                    src={
-                      post.photo ||
-                      usersMap[post.userId]?.photo ||
-                      "/default-avatar.png"
-                    }
+                    src={post.photo || "/default-avatar.png"}
                     className="w-12 h-12 rounded-full"
                   />
 
                   <div>
-                    <h2 className="font-semibold">
-                      {usersMap[post.userId]?.name || "User"}
-                    </h2>
+                    <h2 className="font-semibold">{post.name || "User"}</h2>
                     <p className="text-xs text-gray-400">
-                      {post.type || "post"}
+                      {timeAgo(post.createdAt)}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <FollowButton targetUserId={post.userId} />
 
                   <Link
                     href={`/profile/${post.userId}`}
-                    className="text-blue-400 text-xs"
+                    className="text-xs text-blue-400"
                   >
                     View
                   </Link>
 
                   {user?.uid === post.userId && (
-                    <>
-                      <button
-                        onClick={() => openEdit(post)}
-                        className="text-yellow-400"
-                      >
-                        ✏️
-                      </button>
-
-                      <button
-                        onClick={() => deletePost(post.id)}
-                        className="text-red-500"
-                      >
-                        🗑
-                      </button>
-                    </>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="text-red-500 text-sm"
+                    >
+                      🗑
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* TEXT */}
-              {post.text && <p className="my-4">{post.text}</p>}
+              {post.text && (
+                <p className="my-4 text-[15px]">{post.text}</p>
+              )}
 
               {/* MEDIA */}
               {post.media && (
@@ -248,9 +243,6 @@ export default function FeedPage() {
                     <video
                       src={post.media}
                       controls
-                      autoPlay
-                      muted
-                      loop
                       className="rounded-xl w-full"
                     />
                   ) : (
@@ -274,10 +266,6 @@ export default function FeedPage() {
                 <span className="text-blue-400">
                   💬 {post.comments || 0}
                 </span>
-
-                <span className="text-green-400">
-                  🔁 {post.shares || 0}
-                </span>
               </div>
 
               <Comments postId={post.id} />
@@ -285,60 +273,6 @@ export default function FeedPage() {
           ))}
         </div>
 
-        {/* EDIT MODAL */}
-        {editingPost && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="bg-[#0f172a] p-6 rounded-2xl w-full max-w-md">
-
-              <h2 className="text-xl font-bold mb-4">Edit Post</h2>
-
-              <textarea
-                value={newText}
-                onChange={(e) => setNewText(e.target.value)}
-                className="w-full p-3 rounded bg-[#1e293b] mb-4"
-              />
-
-              <input
-                type="file"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const url = await uploadFile(file);
-                  setNewMedia(url);
-                }}
-                className="mb-4"
-              />
-
-              <input
-                type="file"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const url = await uploadFile(file);
-                  setNewPhoto(url);
-                }}
-                className="mb-4"
-              />
-
-              <div className="flex gap-3">
-                <button
-                  onClick={saveEdit}
-                  className="bg-green-600 px-4 py-2 rounded"
-                >
-                  Save
-                </button>
-
-                <button
-                  onClick={() => setEditingPost(null)}
-                  className="bg-gray-600 px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

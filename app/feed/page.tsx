@@ -28,7 +28,7 @@ export default function FeedPage() {
   const [usersMap, setUsersMap] = useState<any>({});
   const [filter, setFilter] = useState("all");
 
-  // ✅ EDIT STATES
+  // EDIT STATES
   const [editingPost, setEditingPost] = useState<any>(null);
   const [newText, setNewText] = useState("");
   const [newMedia, setNewMedia] = useState("");
@@ -60,7 +60,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS (PROFILE DATA)
+  // USERS (LIVE PROFILE LINK)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const loadUsers = async () => {
@@ -101,7 +101,7 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // UPLOAD (Cloudinary)
+  // UPLOAD
   //////////////////////////////////////////////////////
   const uploadFile = async (file: File) => {
     const data = new FormData();
@@ -133,7 +133,7 @@ export default function FeedPage() {
     await updateDoc(doc(db, "posts", editingPost.id), {
       text: newText,
       media: newMedia,
-      photo: newPhoto,
+      photo: newPhoto, // 🔥 post-only photo
     });
 
     setEditingPost(null);
@@ -188,7 +188,7 @@ export default function FeedPage() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
 
-                  {/* ✅ POST PHOTO FIRST */}
+                  {/* ✅ PRIORITY: post.photo > profile.photo */}
                   <img
                     src={
                       post.photo ||
@@ -202,26 +202,40 @@ export default function FeedPage() {
                     <h2 className="font-semibold">
                       {usersMap[post.userId]?.name || "User"}
                     </h2>
+                    <p className="text-xs text-gray-400">
+                      {post.type || "post"}
+                    </p>
                   </div>
                 </div>
 
-                {user?.uid === post.userId && (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => openEdit(post)}
-                      className="text-yellow-400"
-                    >
-                      ✏️
-                    </button>
+                <div className="flex items-center gap-3">
+                  <FollowButton targetUserId={post.userId} />
 
-                    <button
-                      onClick={() => deletePost(post.id)}
-                      className="text-red-500"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                )}
+                  <Link
+                    href={`/profile/${post.userId}`}
+                    className="text-blue-400 text-xs"
+                  >
+                    View
+                  </Link>
+
+                  {user?.uid === post.userId && (
+                    <>
+                      <button
+                        onClick={() => openEdit(post)}
+                        className="text-yellow-400"
+                      >
+                        ✏️
+                      </button>
+
+                      <button
+                        onClick={() => deletePost(post.id)}
+                        className="text-red-500"
+                      >
+                        🗑
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* TEXT */}
@@ -231,18 +245,39 @@ export default function FeedPage() {
               {post.media && (
                 <div className="mt-3">
                   {post.type === "video" ? (
-                    <video src={post.media} controls className="rounded-xl w-full" />
+                    <video
+                      src={post.media}
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      className="rounded-xl w-full"
+                    />
                   ) : (
-                    <img src={post.media} className="rounded-xl w-full" />
+                    <img
+                      src={post.media}
+                      className="rounded-xl w-full"
+                    />
                   )}
                 </div>
               )}
 
               {/* ACTIONS */}
-              <div className="flex justify-between mt-4">
-                <button onClick={() => likePost(post.id)}>
+              <div className="flex justify-between mt-4 text-sm">
+                <button
+                  onClick={() => likePost(post.id)}
+                  className="text-red-400"
+                >
                   ❤️ {post.likes || 0}
                 </button>
+
+                <span className="text-blue-400">
+                  💬 {post.comments || 0}
+                </span>
+
+                <span className="text-green-400">
+                  🔁 {post.shares || 0}
+                </span>
               </div>
 
               <Comments postId={post.id} />
@@ -250,7 +285,7 @@ export default function FeedPage() {
           ))}
         </div>
 
-        {/* ================= EDIT MODAL ================= */}
+        {/* EDIT MODAL */}
         {editingPost && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
             <div className="bg-[#0f172a] p-6 rounded-2xl w-full max-w-md">
@@ -262,16 +297,6 @@ export default function FeedPage() {
                 onChange={(e) => setNewText(e.target.value)}
                 className="w-full p-3 rounded bg-[#1e293b] mb-4"
               />
-
-              {newMedia && (
-                <div className="mb-4">
-                  {newMedia.includes(".mp4") ? (
-                    <video src={newMedia} controls />
-                  ) : (
-                    <img src={newMedia} />
-                  )}
-                </div>
-              )}
 
               <input
                 type="file"

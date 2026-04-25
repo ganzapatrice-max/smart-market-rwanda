@@ -25,18 +25,14 @@ export default function FeedPage() {
 
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
-  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-
   const [usersMap, setUsersMap] = useState<any>({});
 
   //////////////////////////////////////////////////////
   // LOAD USER
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      setUser(u);
-    });
+    const unsub = auth.onAuthStateChanged((u) => setUser(u));
     return () => unsub();
   }, []);
 
@@ -58,7 +54,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD USERS (FIX PHOTO ISSUE)
+  // LOAD USERS (FIXED)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const loadUsers = async () => {
@@ -67,15 +63,10 @@ export default function FeedPage() {
       await Promise.all(
         posts.map(async (post) => {
           if (!map[post.userId]) {
-            try {
-              const ref = doc(db, "users", post.userId);
-              const snap = await getDoc(ref);
-
-              if (snap.exists()) {
-                map[post.userId] = snap.data();
-              }
-            } catch (err) {
-              console.log("User fetch error:", err);
+            const ref = doc(db, "users", post.userId);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+              map[post.userId] = snap.data();
             }
           }
         })
@@ -105,32 +96,11 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // TIME AGO
-  //////////////////////////////////////////////////////
-  const timeAgo = (date: any) => {
-    if (!date?.seconds) return "Now";
-
-    const diff = Math.floor((Date.now() - date.seconds * 1000) / 1000);
-
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-
-    return `${Math.floor(diff / 86400)}d`;
-  };
-
-  //////////////////////////////////////////////////////
   // FILTER
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
-    if (filter === "text") return post.type === "normal";
-    if (filter === "photo") return post.type === "image";
-    if (filter === "video") return post.type === "video";
-    if (filter === "product") return post.type === "product";
-    if (filter === "service") return post.type === "service";
-    if (filter === "job") return post.type === "job";
-    return true;
+    return post.type === filter;
   });
 
   //////////////////////////////////////////////////////
@@ -140,30 +110,29 @@ export default function FeedPage() {
     <main className="min-h-screen bg-[#07111a] text-white p-6">
       <div className="max-w-3xl mx-auto">
 
-        {/* NAV */}
-        <div className="flex gap-3 mb-4">
-          <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
-            🏠 Home
-          </Link>
+        {/* REELS (RESTORED ✅) */}
+        <div className="flex gap-4 overflow-x-auto mb-6">
+          {posts
+            .filter((p) => p.type === "video")
+            .map((post) => (
+              <div
+                key={post.id}
+                onClick={() => router.push(`/reel/${post.id}`)}
+                className="cursor-pointer flex flex-col items-center min-w-[70px]"
+              >
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-pink-500">
+                  <video
+                    src={post.media}
+                    className="w-full h-full object-cover"
+                    muted
+                  />
+                </div>
 
-          <button
-            onClick={() => window.history.back()}
-            className="bg-gray-600 px-4 py-2 rounded"
-          >
-            ⬅ Back
-          </button>
-        </div>
-
-        {/* TOP */}
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Smart Feed</h1>
-
-          <Link
-            href="/post"
-            className="bg-green-600 px-5 py-2 rounded-full font-bold"
-          >
-            ➕ Post
-          </Link>
+                <span className="text-xs mt-1 truncate w-16 text-center">
+                  {post.name}
+                </span>
+              </div>
+            ))}
         </div>
 
         {/* POSTS */}
@@ -174,89 +143,60 @@ export default function FeedPage() {
               {/* HEADER */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-
-                  {/* ✅ ALWAYS LIVE PHOTO */}
+                  
+                  {/* ✅ ALWAYS LIVE PROFILE PHOTO */}
                   <img
                     src={
                       usersMap[post.userId]?.photo ||
                       "/default-avatar.png"
                     }
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full"
                   />
 
                   <div>
                     <h2 className="font-semibold">
-                      {usersMap[post.userId]?.name || post.name || "User"}
+                      {usersMap[post.userId]?.name || "User"}
                     </h2>
-                    <p className="text-xs text-gray-400">
-                      {timeAgo(post.createdAt)}
-                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <FollowButton targetUserId={post.userId} />
-
-                  <Link
-                    href={`/profile/${post.userId}`}
-                    className="text-xs text-blue-400"
+                {user?.uid === post.userId && (
+                  <button
+                    onClick={() => deletePost(post.id)}
+                    className="text-red-500"
                   >
-                    View
-                  </Link>
-
-                  {user?.uid === post.userId && (
-                    <button
-                      onClick={() => deletePost(post.id)}
-                      className="text-red-500 text-sm"
-                    >
-                      🗑
-                    </button>
-                  )}
-                </div>
+                    🗑
+                  </button>
+                )}
               </div>
 
               {/* TEXT */}
               {post.text && (
-                <p className="my-4 text-[15px]">{post.text}</p>
+                <p className="my-4">{post.text}</p>
               )}
 
               {/* MEDIA */}
               {post.media && (
                 <div className="mt-3">
                   {post.type === "video" ? (
-                    <video
-                      src={post.media}
-                      controls
-                      className="rounded-xl w-full"
-                    />
+                    <video src={post.media} controls />
                   ) : (
-                    <img
-                      src={post.media}
-                      className="rounded-xl w-full"
-                    />
+                    <img src={post.media} />
                   )}
                 </div>
               )}
 
               {/* ACTIONS */}
-              <div className="flex justify-between mt-4 text-sm">
-                <button
-                  onClick={() => likePost(post.id)}
-                  className="text-red-400"
-                >
+              <div className="flex justify-between mt-4">
+                <button onClick={() => likePost(post.id)}>
                   ❤️ {post.likes || 0}
                 </button>
-
-                <span className="text-blue-400">
-                  💬 {post.comments || 0}
-                </span>
               </div>
 
               <Comments postId={post.id} />
             </div>
           ))}
         </div>
-
       </div>
     </main>
   );

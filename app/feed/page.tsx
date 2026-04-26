@@ -18,6 +18,8 @@ import {
   deleteDoc,
   increment,
   getDoc,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -98,46 +100,46 @@ export default function FeedPage() {
     await deleteDoc(doc(db, "posts", id));
   };
 
+  //////////////////////////////////////////////////////
+  // SHARE
+  //////////////////////////////////////////////////////
   const sharePost = async (post: any) => {
-  if (!user) return;
+    if (!user) return;
 
-  try {
-    // save share
-    await updateDoc(doc(db, "posts", post.id), {
-      shares: increment(1),
-    });
-
-    // create notification
-    if (post.userId !== user.uid) {
-      await addDoc(collection(db, "notifications"), {
-        toUserId: post.userId,
-        fromUserId: user.uid,
-        type: "share",
-        postId: post.id,
-        createdAt: serverTimestamp(),
-        read: false,
+    try {
+      await updateDoc(doc(db, "posts", post.id), {
+        shares: increment(1),
       });
-    }
 
-    // optional: native share
-    if (navigator.share) {
-      await navigator.share({
-        title: "Smart Market",
-        text: post.text,
-        url: window.location.href,
-      });
-    }
+      if (post.userId !== user.uid) {
+        await addDoc(collection(db, "notifications"), {
+          toUserId: post.userId,
+          fromUserId: user.uid,
+          type: "share",
+          postId: post.id,
+          createdAt: serverTimestamp(),
+          read: false,
+        });
+      }
 
-  } catch (err) {
-    console.error(err);
-  }
-};
+      if (navigator.share) {
+        await navigator.share({
+          title: "Smart Market",
+          text: post.text,
+          url: window.location.href,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   //////////////////////////////////////////////////////
   // FILTER + SEARCH
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((post) => {
     const matchType = filter === "all" || post.type === filter;
+
     const matchSearch =
       post.text?.toLowerCase().includes(search.toLowerCase()) ||
       usersMap[post.userId]?.name
@@ -153,13 +155,13 @@ export default function FeedPage() {
   return (
     <main className="w-full space-y-4">
 
-      {/* 🔍 SEARCH */}
-      <div className="bg-black p-3 rounded-xl shadow-sm">
+      {/* 🔍 SEARCH (FIXED VISIBILITY) */}
+      <div className="bg-white p-3 rounded-xl shadow-sm">
         <input
           placeholder="Search posts or users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full p-2 rounded-lg bg-gray-100 outline-none"
+          className="w-full p-2 rounded-lg bg-gray-100 text-black placeholder-gray-500 outline-none"
         />
       </div>
 
@@ -178,14 +180,14 @@ export default function FeedPage() {
                 className="h-32 w-full object-cover rounded-lg"
                 muted
               />
-              <p className="text-xs text-center">
+              <p className="text-xs text-center text-black">
                 {usersMap[post.userId]?.name || "User"}
               </p>
             </div>
           ))}
       </div>
 
-      {/* CREATE POST */}
+      {/* CREATE POST (FIXED) */}
       <div className="bg-white p-4 rounded-xl shadow-sm">
         <div className="flex gap-3 items-center">
           <img
@@ -196,12 +198,12 @@ export default function FeedPage() {
             className="w-10 h-10 rounded-full"
           />
 
-         <input
-  placeholder="Search posts or users..."
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-  className="w-full p-2 rounded-lg bg-gray-100 text-black placeholder-gray-500 outline-none"
-/>
+          <input
+            placeholder="What's on your mind?"
+            onClick={() => router.push("/post")}
+            readOnly
+            className="flex-1 bg-gray-100 text-black px-4 py-2 rounded-full"
+          />
         </div>
       </div>
 
@@ -307,12 +309,11 @@ export default function FeedPage() {
             <div className="flex justify-around border-t mt-3 pt-2 text-sm">
               <button onClick={() => likePost(post.id)}>👍 Like</button>
               <button>💬 Comment</button>
-              <button>↗ Share</button>
+              <button onClick={() => sharePost(post)}>↗ Share</button>
             </div>
 
             {/* COMMENTS */}
             <Comments postId={post.id} postOwnerId={post.userId} />
-            <button onClick={() => sharePost(post)}>↗ Share</button>
           </div>
         );
       })}

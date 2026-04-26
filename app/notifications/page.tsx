@@ -14,9 +14,20 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+// ✅ ADD TYPE (fixes your error)
+type Notification = {
+  id: string;
+  toUserId: string;
+  fromUserId: string;
+  type: string;
+  postId?: string;
+  createdAt?: any;
+  read?: boolean;
+};
+
 export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [usersMap, setUsersMap] = useState<any>({});
 
   //////////////////////////////////////////////////////
@@ -40,14 +51,14 @@ export default function NotificationsPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((doc) => ({
+      const data: Notification[] = snap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as Omit<Notification, "id">),
       }));
 
       setNotifications(data);
 
-      // ✅ mark as read
+      // ✅ mark as read safely
       data.forEach(async (n) => {
         if (!n.read) {
           await updateDoc(doc(db, "notifications", n.id), {
@@ -61,7 +72,7 @@ export default function NotificationsPage() {
   }, [user]);
 
   //////////////////////////////////////////////////////
-  // LOAD USERS (who triggered notification)
+  // LOAD USERS
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!notifications.length) return;
@@ -87,9 +98,9 @@ export default function NotificationsPage() {
   }, [notifications]);
 
   //////////////////////////////////////////////////////
-  // FORMAT MESSAGE
+  // MESSAGE FORMAT
   //////////////////////////////////////////////////////
-  const getMessage = (n: any) => {
+  const getMessage = (n: Notification) => {
     const name = usersMap[n.fromUserId]?.name || "Someone";
 
     switch (n.type) {
@@ -98,7 +109,7 @@ export default function NotificationsPage() {
       case "comment":
         return `${name} commented on your post`;
       case "follow":
-        return `${name} started following you`;
+        return `${name} followed you`;
       case "share":
         return `${name} shared your post`;
       default:

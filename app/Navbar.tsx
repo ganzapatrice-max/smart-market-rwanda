@@ -71,6 +71,12 @@ export default function Navbar() {
       <div className="max-w-5xl mx-auto px-4 py-2 flex justify-between items-center">
 
         <h1 className="font-semibold">Smart Market Rwanda</h1>
+        <Link
+  href="/messages"
+  className="relative"
+>
+  💬
+</Link>
 
         {/* DESKTOP */}
         <nav className="hidden md:flex gap-6 items-center">

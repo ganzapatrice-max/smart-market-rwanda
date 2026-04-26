@@ -119,7 +119,7 @@ export default function FeedPage() {
     <main className="w-full space-y-4">
 
       {/* 🔍 SEARCH */}
-      <div className="bg-white p-3 rounded-xl shadow-sm">
+      <div className="bg-black p-3 rounded-xl shadow-sm">
         <input
           placeholder="Search posts or users..."
           value={search}

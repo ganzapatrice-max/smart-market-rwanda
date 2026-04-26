@@ -11,6 +11,8 @@ import {
   updateDoc,
   increment,
   serverTimestamp,
+  addDoc,
+  collection,
 } from "firebase/firestore";
 
 import { onAuthStateChanged } from "firebase/auth";
@@ -25,17 +27,15 @@ export default function FollowButton({
   const [loading, setLoading] = useState(false);
 
   //////////////////////////////////////////////////////
-  // LOAD USER
+  // AUTH
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // CHECK IF FOLLOWING
+  // CHECK FOLLOW STATUS
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
@@ -82,11 +82,10 @@ export default function FollowButton({
 
     try {
       if (following) {
-        // UNFOLLOW
+        // ❌ UNFOLLOW
         await deleteDoc(myFollowRef);
         await deleteDoc(theirFollowerRef);
 
-        // decrease counters
         await updateDoc(doc(db, "users", targetUserId), {
           followers: increment(-1),
         });
@@ -97,7 +96,7 @@ export default function FollowButton({
 
         setFollowing(false);
       } else {
-        // FOLLOW
+        // ✅ FOLLOW
         await setDoc(myFollowRef, {
           createdAt: serverTimestamp(),
         });
@@ -106,15 +105,17 @@ export default function FollowButton({
           createdAt: serverTimestamp(),
         });
 
-        await addDoc(collection(db, "notifications"), {
-  toUserId: targetUserId,
-  fromUserId: user.uid,
-  type: "follow",
-  createdAt: serverTimestamp(),
-  read: false,
-});
+        // 🔔 NOTIFICATION
+        if (targetUserId !== user.uid) {
+          await addDoc(collection(db, "notifications"), {
+            toUserId: targetUserId,
+            fromUserId: user.uid,
+            type: "follow",
+            createdAt: serverTimestamp(),
+            read: false,
+          });
+        }
 
-        // increase counters
         await updateDoc(doc(db, "users", targetUserId), {
           followers: increment(1),
         });
@@ -147,11 +148,7 @@ export default function FollowButton({
           : "bg-blue-600 hover:bg-blue-500"
       }`}
     >
-      {loading
-        ? "Loading..."
-        : following
-        ? "Following"
-        : "Follow"}
+      {loading ? "Loading..." : following ? "Following" : "Follow"}
     </button>
   );
 }

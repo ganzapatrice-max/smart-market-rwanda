@@ -296,7 +296,7 @@ export default function FeedPage() {
               </div>
 
               {/* COMMENTS */}
-              <Comments postId={post.id} />
+              <Comments postId={post.id} postOwnerId={post.userId} />
 
             </div>
           ))}

@@ -1,45 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { useParams } from "next/navigation";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
-export default function ReelPage() {
-  const { id } = useParams();
-  const [post, setPost] = useState<any>(null);
+export default function ReelsPage() {
+  const [videos, setVideos] = useState<any[]>([]);
+  const videoRefs = useRef<any[]>([]);
 
   useEffect(() => {
-    const load = async () => {
-      const snap = await getDoc(doc(db, "posts", id as string));
-      if (snap.exists()) {
-        setPost(snap.data());
-      }
-    };
-    load();
-  }, [id]);
+    const q = query(collection(db, "posts"), where("type", "==", "video"));
 
-  if (!post) return null;
+    const unsub = onSnapshot(q, (snap) => {
+      setVideos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsub();
+  }, []);
+
+  //////////////////////////////////////////////////////
+  // AUTO PLAY ON SCROLL
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry: any) => {
+          const video = entry.target;
+
+          if (entry.isIntersecting) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.8 }
+    );
+
+    videoRefs.current.forEach((video) => {
+      if (video) observer.observe(video);
+    });
+
+    return () => observer.disconnect();
+  }, [videos]);
 
   return (
-    <div className="h-screen bg-black flex items-center justify-center relative">
-      <video
-        src={post.media}
-        className="h-full w-full object-cover"
-        autoPlay
-        loop
-        muted
-        controls
-      />
-
-      {/* USER */}
-      <div className="absolute bottom-10 left-4 flex items-center gap-2 bg-black/60 p-2 rounded-lg text-white">
-        <img
-          src={post.photo || "/default-avatar.png"}
-          className="w-10 h-10 rounded-full"
-        />
-        <span>{post.name}</span>
-      </div>
-    </div>
+    <main className="h-screen overflow-y-scroll snap-y snap-mandatory bg-black">
+      {videos.map((video, i) => (
+        <div
+          key={video.id}
+          className="h-screen flex items-center justify-center snap-start"
+        >
+          <video
+            ref={(el) => (videoRefs.current[i] = el)}
+            src={video.media}
+            className="h-full w-full object-cover"
+            loop
+            muted
+            controls
+          />
+        </div>
+      ))}
+    </main>
   );
 }

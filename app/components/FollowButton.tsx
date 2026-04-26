@@ -106,6 +106,14 @@ export default function FollowButton({
           createdAt: serverTimestamp(),
         });
 
+        await addDoc(collection(db, "notifications"), {
+  toUserId: targetUserId,
+  fromUserId: user.uid,
+  type: "follow",
+  createdAt: serverTimestamp(),
+  read: false,
+});
+
         // increase counters
         await updateDoc(doc(db, "users", targetUserId), {
           followers: increment(1),

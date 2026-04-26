@@ -16,7 +16,7 @@ import {
   doc,
 } from "firebase/firestore";
 
-// ✅ FIX: define message type
+// ✅ Message type
 type Message = {
   id: string;
   conversationId: string;
@@ -94,9 +94,9 @@ export default function ChatPage() {
       createdAt: serverTimestamp(),
     });
 
-    // ✅ notify other users (simple version)
+    // ✅ notification (replace with real receiver later)
     await addDoc(collection(db, "notifications"), {
-      toUserId: "TARGET_USER_ID", // 🔥 replace with real receiver
+      toUserId: "TARGET_USER_ID",
       fromUserId: user.uid,
       type: "message",
       createdAt: serverTimestamp(),
@@ -116,33 +116,37 @@ export default function ChatPage() {
       
       {/* MESSAGES */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`p-2 rounded max-w-[70%] ${
-              m.senderId === user?.uid
-                ? "bg-blue-600 text-white ml-auto"
-                : "bg-gray-200"
-            }`}
-          >
-            {m.text && <p>{m.text}</p>}
+        {messages.map((m) => {
+          const seenCount = m.seenBy?.length || 0; // ✅ FIX HERE
 
-            {m.image && (
-              <img src={m.image} className="rounded mt-2" />
-            )}
+          return (
+            <div
+              key={m.id}
+              className={`p-2 rounded max-w-[70%] ${
+                m.senderId === user?.uid
+                  ? "bg-blue-600 text-white ml-auto"
+                  : "bg-gray-200"
+              }`}
+            >
+              {m.text && <p>{m.text}</p>}
 
-            {m.audio && (
-              <audio controls src={m.audio} />
-            )}
+              {m.image && (
+                <img src={m.image} className="rounded mt-2" />
+              )}
 
-            {/* ✔ seen */}
-            {m.senderId === user?.uid && (
-              <p className="text-xs">
-                {m.seenBy?.length > 1 ? "✔✔ Seen" : "✔ Sent"}
-              </p>
-            )}
-          </div>
-        ))}
+              {m.audio && (
+                <audio controls src={m.audio} />
+              )}
+
+              {/* ✔ seen */}
+              {m.senderId === user?.uid && (
+                <p className="text-xs">
+                  {seenCount > 1 ? "✔✔ Seen" : "✔ Sent"}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* INPUT */}

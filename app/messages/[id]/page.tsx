@@ -14,19 +14,28 @@ import {
   serverTimestamp,
   updateDoc,
   doc,
-  getDoc,
 } from "firebase/firestore";
 
+// ✅ FIX: define message type
+type Message = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  text?: string;
+  image?: string;
+  audio?: string;
+  seenBy?: string[];
+  createdAt?: any;
+};
+
 export default function ChatPage() {
-  const params = useParams();
-  const id = params?.id as string;
+  const { id } = useParams();
 
   const [user, setUser] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
-  const [image, setImage] = useState<any>(null);
-  const [audio, setAudio] = useState<any>(null);
-  const [members, setMembers] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null);
+  const [audio, setAudio] = useState<string | null>(null);
 
   //////////////////////////////////////////////////////
   // AUTH
@@ -35,22 +44,6 @@ export default function ChatPage() {
     const unsub = auth.onAuthStateChanged(setUser);
     return () => unsub();
   }, []);
-
-  //////////////////////////////////////////////////////
-  // LOAD CONVERSATION MEMBERS
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    if (!id) return;
-
-    const load = async () => {
-      const snap = await getDoc(doc(db, "conversations", id));
-      if (snap.exists()) {
-        setMembers(snap.data().members || []);
-      }
-    };
-
-    load();
-  }, [id]);
 
   //////////////////////////////////////////////////////
   // LOAD MESSAGES
@@ -65,14 +58,14 @@ export default function ChatPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({
+      const data: Message[] = snap.docs.map((d) => ({
         id: d.id,
-        ...d.data(),
+        ...(d.data() as Omit<Message, "id">),
       }));
 
       setMessages(data);
 
-      // ✅ mark seen
+      // ✅ mark seen safely
       data.forEach(async (m) => {
         if (!m.seenBy?.includes(user.uid)) {
           await updateDoc(doc(db, "messages", m.id), {
@@ -89,9 +82,9 @@ export default function ChatPage() {
   // SEND MESSAGE
   //////////////////////////////////////////////////////
   const sendMessage = async () => {
-    if (!user || (!text && !image && !audio)) return;
+    if (!text && !image && !audio) return;
 
-    const messageRef = await addDoc(collection(db, "messages"), {
+    await addDoc(collection(db, "messages"), {
       conversationId: id,
       senderId: user.uid,
       text,
@@ -101,28 +94,14 @@ export default function ChatPage() {
       createdAt: serverTimestamp(),
     });
 
-    // ✅ update conversation last message
-    await updateDoc(doc(db, "conversations", id), {
-      lastMessage: text || "📎 Media",
-      lastSenderId: user.uid,
-      updatedAt: serverTimestamp(),
+    // ✅ notify other users (simple version)
+    await addDoc(collection(db, "notifications"), {
+      toUserId: "TARGET_USER_ID", // 🔥 replace with real receiver
+      fromUserId: user.uid,
+      type: "message",
+      createdAt: serverTimestamp(),
+      read: false,
     });
-
-    // ✅ send notification to others
-    const otherUsers = members.filter((m) => m !== user.uid);
-
-    await Promise.all(
-      otherUsers.map((uid) =>
-        addDoc(collection(db, "notifications"), {
-          toUserId: uid,
-          fromUserId: user.uid,
-          type: "message",
-          postId: id,
-          createdAt: serverTimestamp(),
-          read: false,
-        })
-      )
-    );
 
     setText("");
     setImage(null);
@@ -134,7 +113,7 @@ export default function ChatPage() {
   //////////////////////////////////////////////////////
   return (
     <main className="flex flex-col h-screen max-w-2xl mx-auto">
-
+      
       {/* MESSAGES */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((m) => (
@@ -158,7 +137,7 @@ export default function ChatPage() {
 
             {/* ✔ seen */}
             {m.senderId === user?.uid && (
-              <p className="text-xs mt-1">
+              <p className="text-xs">
                 {m.seenBy?.length > 1 ? "✔✔ Seen" : "✔ Sent"}
               </p>
             )}

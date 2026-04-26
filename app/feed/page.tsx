@@ -98,6 +98,41 @@ export default function FeedPage() {
     await deleteDoc(doc(db, "posts", id));
   };
 
+  const sharePost = async (post: any) => {
+  if (!user) return;
+
+  try {
+    // save share
+    await updateDoc(doc(db, "posts", post.id), {
+      shares: increment(1),
+    });
+
+    // create notification
+    if (post.userId !== user.uid) {
+      await addDoc(collection(db, "notifications"), {
+        toUserId: post.userId,
+        fromUserId: user.uid,
+        type: "share",
+        postId: post.id,
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+    }
+
+    // optional: native share
+    if (navigator.share) {
+      await navigator.share({
+        title: "Smart Market",
+        text: post.text,
+        url: window.location.href,
+      });
+    }
+
+  } catch (err) {
+    console.error(err);
+  }
+};
+
   //////////////////////////////////////////////////////
   // FILTER + SEARCH
   //////////////////////////////////////////////////////
@@ -277,6 +312,7 @@ export default function FeedPage() {
 
             {/* COMMENTS */}
             <Comments postId={post.id} postOwnerId={post.userId} />
+            <button onClick={() => sharePost(post)}>↗ Share</button>
           </div>
         );
       })}

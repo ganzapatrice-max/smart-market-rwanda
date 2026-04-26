@@ -99,10 +99,10 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   // FILTER
   //////////////////////////////////////////////////////
-const filteredPosts = posts.filter((post) => {
-  if (filter === "all") return true;
-  return post.type === filter;
-});
+  const filteredPosts = posts.filter((post) => {
+    if (filter === "all") return true;
+    return post.type === filter;
+  });
 
   //////////////////////////////////////////////////////
   // UI
@@ -234,25 +234,37 @@ const filteredPosts = posts.filter((post) => {
                 </div>
               </div>
 
-              {/* TEXT */}
-            {post.type === "service" ? (
-  <div className="bg-green-50 p-3 rounded-lg">
-    <p className="font-bold">{post.text}</p>
-    <p className="text-green-600">{post.price} RWF</p>
-    <p className="text-gray-500 text-sm">{post.location}</p>
+              {/* SERVICE POST */}
+              {post.type === "service" ? (
+                <div className="bg-green-50 p-3 rounded-lg mt-3">
+                  <p className="font-bold">{post.text}</p>
+                  <p className="text-green-600">{post.price} RWF</p>
+                  <p className="text-gray-500 text-sm">{post.location}</p>
 
-    <a
-      href={`tel:${post.phone}`}
-      className="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded"
-    >
-      📞 Call
-    </a>
-  </div>
-) : (
-  post.text && <p className="my-3">{post.text}</p>
-)}
+                  <div className="flex gap-2 mt-2">
+                    <a
+                      href={`tel:${post.phone}`}
+                      className="bg-green-600 text-white px-3 py-1 rounded"
+                    >
+                      📞 Call
+                    </a>
+
+                    <button
+                      onClick={() =>
+                        router.push(`/services/${post.serviceId || post.id}`)
+                      }
+                      className="bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                post.text && <p className="my-3">{post.text}</p>
+              )}
+
               {/* MEDIA */}
-              {post.media && (
+              {post.media && post.type !== "service" && (
                 <div className="mt-2">
                   {post.type === "video" ? (
                     <video

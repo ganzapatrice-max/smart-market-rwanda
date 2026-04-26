@@ -35,7 +35,7 @@ export default function Comments({
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD COMMENTS (REAL-TIME)
+  // LOAD COMMENTS
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!postId) return;
@@ -58,12 +58,13 @@ export default function Comments({
   }, [postId]);
 
   //////////////////////////////////////////////////////
-  // ADD COMMENT
+  // ADD COMMENT + NOTIFICATION
   //////////////////////////////////////////////////////
   const sendComment = async () => {
     if (!text.trim() || !user) return;
 
     try {
+      // 1. SAVE COMMENT
       await addDoc(collection(db, "posts", postId, "comments"), {
         text: text.trim(),
         userId: user.uid,
@@ -71,8 +72,8 @@ export default function Comments({
         createdAt: serverTimestamp(),
       });
 
-      // 🔔 NOTIFICATION
-      if (postOwnerId !== user.uid) {
+      // 2. SEND NOTIFICATION
+      if (postOwnerId && postOwnerId !== user.uid) {
         await addDoc(collection(db, "notifications"), {
           toUserId: postOwnerId,
           fromUserId: user.uid,
@@ -81,11 +82,15 @@ export default function Comments({
           createdAt: serverTimestamp(),
           read: false,
         });
+
+        console.log("✅ Notification sent");
+      } else {
+        console.log("⚠️ No notification (self comment or missing owner)");
       }
 
       setText("");
     } catch (err) {
-      console.error(err);
+      console.error("❌ Comment error:", err);
     }
   };
 
@@ -94,8 +99,7 @@ export default function Comments({
   //////////////////////////////////////////////////////
   return (
     <div className="mt-3">
-
-      {/* ✅ CLICK TO OPEN COMMENTS */}
+      {/* TOGGLE */}
       <button
         onClick={() => setShowComments(!showComments)}
         className="text-sm text-blue-500 mb-2"
@@ -103,7 +107,23 @@ export default function Comments({
         💬 {comments.length} Comments
       </button>
 
-      {/* COMMENTS LIST */}
+      {/* TEST BUTTON */}
+      <button
+        onClick={async () => {
+          await addDoc(collection(db, "notifications"), {
+            toUserId: "test",
+            fromUserId: "test",
+            type: "test",
+            createdAt: serverTimestamp(),
+            read: false,
+          });
+          console.log("TEST notification created");
+        }}
+      >
+        Test Notification
+      </button>
+
+      {/* COMMENTS */}
       {showComments && (
         <>
           <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">

@@ -284,7 +284,6 @@ export default function FeedPage() {
               {/* COUNTS */}
               <div className="flex justify-between text-xs text-gray-500 mt-3">
                 <span>👍 {post.likes || 0}</span>
-                <span>{post.comments || 0} comments</span>
                 <span>{post.shares || 0} shares</span>
               </div>
 

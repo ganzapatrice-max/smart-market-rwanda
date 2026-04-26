@@ -150,5 +150,7 @@ export default function FollowButton({
     >
       {loading ? "Loading..." : following ? "Following" : "Follow"}
     </button>
+
+    
   );
 }

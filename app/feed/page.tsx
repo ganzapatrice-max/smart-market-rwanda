@@ -99,10 +99,10 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   // FILTER
   //////////////////////////////////////////////////////
-  const filteredPosts = posts.filter((post) => {
-    if (filter === "all") return true;
-    return post.type === filter;
-  });
+const filteredPosts = posts.filter((post) => {
+  if (filter === "all") return true;
+  return post.type === filter;
+});
 
   //////////////////////////////////////////////////////
   // UI
@@ -235,10 +235,22 @@ export default function FeedPage() {
               </div>
 
               {/* TEXT */}
-              {post.text && (
-                <p className="my-3 text-sm">{post.text}</p>
-              )}
+            {post.type === "service" ? (
+  <div className="bg-green-50 p-3 rounded-lg">
+    <p className="font-bold">{post.text}</p>
+    <p className="text-green-600">{post.price} RWF</p>
+    <p className="text-gray-500 text-sm">{post.location}</p>
 
+    <a
+      href={`tel:${post.phone}`}
+      className="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded"
+    >
+      📞 Call
+    </a>
+  </div>
+) : (
+  post.text && <p className="my-3">{post.text}</p>
+)}
               {/* MEDIA */}
               {post.media && (
                 <div className="mt-2">

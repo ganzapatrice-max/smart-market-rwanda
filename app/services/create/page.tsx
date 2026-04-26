@@ -2,6 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
+import { addDoc } from "firebase/firestore";
+
+// AFTER saving to "services"
+await addDoc(collection(db, "posts"), {
+  userId: user.uid,
+  text: title + " - " + description,
+  media: "",
+  type: "service",
+  price,
+  location,
+  phone,
+  createdAt: serverTimestamp(),
+});
 import {
   addDoc,
   collection,

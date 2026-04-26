@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 
 import {
@@ -14,7 +15,9 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-// ✅ ADD TYPE (fixes your error)
+//////////////////////////////////////////////////////
+// ✅ TYPE
+//////////////////////////////////////////////////////
 type Notification = {
   id: string;
   toUserId: string;
@@ -26,9 +29,20 @@ type Notification = {
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
+
   const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [usersMap, setUsersMap] = useState<any>({});
+  const [popup, setPopup] = useState<string | null>(null);
+
+  //////////////////////////////////////////////////////
+  // 🔊 SOUND
+  //////////////////////////////////////////////////////
+  const playSound = () => {
+    const audio = new Audio("/notification.mp3");
+    audio.play().catch(() => {});
+  };
 
   //////////////////////////////////////////////////////
   // AUTH
@@ -39,7 +53,7 @@ export default function NotificationsPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD NOTIFICATIONS (REALTIME 🔥)
+  // 🔥 LOAD NOTIFICATIONS (REALTIME)
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
@@ -56,9 +70,20 @@ export default function NotificationsPage() {
         ...(doc.data() as Omit<Notification, "id">),
       }));
 
+      // 🔊 SOUND + 💬 POPUP (only if new comes)
+      if (data.length > notifications.length) {
+        const latest = data[0];
+        const name = usersMap[latest.fromUserId]?.name || "Someone";
+
+        playSound();
+        setPopup(`${name} ${latest.type} your post`);
+
+        setTimeout(() => setPopup(null), 3000);
+      }
+
       setNotifications(data);
 
-      // ✅ mark as read safely
+      // ✅ mark as read
       data.forEach(async (n) => {
         if (!n.read) {
           await updateDoc(doc(db, "notifications", n.id), {
@@ -69,7 +94,7 @@ export default function NotificationsPage() {
     });
 
     return () => unsub();
-  }, [user]);
+  }, [user, notifications.length, usersMap]);
 
   //////////////////////////////////////////////////////
   // LOAD USERS
@@ -123,6 +148,13 @@ export default function NotificationsPage() {
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
 
+      {/* 💬 POPUP */}
+      {popup && (
+        <div className="fixed top-16 right-4 bg-black text-white px-4 py-2 rounded shadow-lg z-50">
+          {popup}
+        </div>
+      )}
+
       <h1 className="text-xl font-bold mb-4">🔔 Notifications</h1>
 
       {notifications.length === 0 && (
@@ -135,7 +167,12 @@ export default function NotificationsPage() {
         return (
           <div
             key={n.id}
-            className={`p-3 rounded-lg flex items-center gap-3 ${
+            onClick={() => {
+              if (n.postId) {
+                router.push(`/post/${n.postId}`); // 👉 OPEN POST
+              }
+            }}
+            className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer ${
               n.read ? "bg-gray-100" : "bg-blue-50"
             }`}
           >

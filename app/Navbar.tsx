@@ -14,9 +14,18 @@ import {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+  const [popup, setPopup] = useState<string | null>(null);
 
   //////////////////////////////////////////////////////
-  // 🔔 REALTIME NOTIFICATIONS COUNT
+  // 🔊 SOUND
+  //////////////////////////////////////////////////////
+  const playSound = () => {
+    const audio = new Audio("/notification.mp3");
+    audio.play().catch(() => {});
+  };
+
+  //////////////////////////////////////////////////////
+  // 🔔 REALTIME NOTIFICATIONS
   //////////////////////////////////////////////////////
   useEffect(() => {
     let unsub: any;
@@ -31,6 +40,14 @@ export default function Navbar() {
       );
 
       unsub = onSnapshot(q, (snap) => {
+        // 🔊 play sound when new notification comes
+        if (snap.size > notifCount) {
+          playSound();
+          setPopup("🔔 New notification");
+
+          setTimeout(() => setPopup(null), 3000);
+        }
+
         setNotifCount(snap.size);
       });
     });
@@ -39,10 +56,18 @@ export default function Navbar() {
       authUnsub();
       if (unsub) unsub();
     };
-  }, []);
+  }, [notifCount]);
 
   return (
     <header className="bg-blue-600 text-white sticky top-0 z-50">
+
+      {/* 💬 POPUP */}
+      {popup && (
+        <div className="fixed top-16 right-4 bg-black text-white px-4 py-2 rounded shadow-lg z-50">
+          {popup}
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 py-2 flex justify-between items-center">
 
         <h1 className="font-semibold">Smart Market Rwanda</h1>
@@ -53,7 +78,15 @@ export default function Navbar() {
           <Link href="/profile">👤</Link>
           <Link href="/services">🛠</Link>
 
-          {/* 🔔 WITH BADGE */}
+          {/* ➕ POST BUTTON */}
+          <Link
+            href="/post"
+            className="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-semibold"
+          >
+            + Post
+          </Link>
+
+          {/* 🔔 */}
           <Link href="/notifications" className="relative">
             🔔
             {notifCount > 0 && (
@@ -76,11 +109,15 @@ export default function Navbar() {
       {/* MOBILE MENU */}
       {open && (
         <div className="md:hidden bg-blue-700 px-4 py-3 space-y-2">
+
           <Link href="/">🏠 Home</Link>
           <Link href="/profile">👤 Profile</Link>
           <Link href="/services">🛠 Services</Link>
 
-          {/* 🔔 WITH BADGE */}
+          {/* ➕ POST */}
+          <Link href="/post">➕ Create Post</Link>
+
+          {/* 🔔 */}
           <Link href="/notifications" className="flex justify-between">
             <span>🔔 Notifications</span>
             {notifCount > 0 && (

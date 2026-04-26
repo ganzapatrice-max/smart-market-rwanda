@@ -161,12 +161,12 @@ export default function FeedPage() {
             className="w-10 h-10 rounded-full"
           />
 
-          <input
-            placeholder="What's on your mind?"
-            className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm"
-            onClick={() => router.push("/post")}
-            readOnly
-          />
+         <input
+  placeholder="Search posts or users..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="w-full p-2 rounded-lg bg-gray-100 text-black placeholder-gray-500 outline-none"
+/>
         </div>
       </div>
 

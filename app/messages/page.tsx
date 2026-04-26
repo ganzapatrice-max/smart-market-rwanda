@@ -1,33 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { auth, db } from "@/lib/firebase";
+
 import {
   collection,
   query,
   where,
   onSnapshot,
-  doc,
-  getDoc,
+  orderBy,
 } from "firebase/firestore";
-import Link from "next/link";
 
 export default function MessagesPage() {
   const [user, setUser] = useState<any>(null);
-  const [convos, setConvos] = useState<any[]>([]);
-  const [usersMap, setUsersMap] = useState<any>({});
+  const [conversations, setConversations] = useState<any[]>([]);
 
+  //////////////////////////////////////////////////////
+  // AUTH
+  //////////////////////////////////////////////////////
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(setUser);
     return () => unsub();
   }, []);
 
+  //////////////////////////////////////////////////////
+  // LOAD CONVERSATIONS
+  //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
 
     const q = query(
       collection(db, "conversations"),
-      where("members", "array-contains", user.uid)
+      where("members", "array-contains", user.uid),
+      orderBy("updatedAt", "desc")
     );
 
     const unsub = onSnapshot(q, (snap) => {
@@ -35,63 +41,40 @@ export default function MessagesPage() {
         id: d.id,
         ...d.data(),
       }));
-      setConvos(data);
+
+      setConversations(data);
     });
 
     return () => unsub();
   }, [user]);
 
-  // 👤 load users
-  useEffect(() => {
-    const load = async () => {
-      const map: any = {};
-
-      for (let c of convos) {
-        for (let m of c.members) {
-          if (!map[m]) {
-            const snap = await getDoc(doc(db, "users", m));
-            if (snap.exists()) map[m] = snap.data();
-          }
-        }
-      }
-
-      setUsersMap(map);
-    };
-
-    load();
-  }, [convos]);
-
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
   return (
-    <main className="max-w-2xl mx-auto p-4">
-      <h1 className="font-bold text-xl mb-4">💬 Messages</h1>
+    <main className="max-w-2xl mx-auto p-4 space-y-3">
 
-      {convos.map((c) => {
-        const other = c.members.find((m: any) => m !== user?.uid);
-        const userData = usersMap[other];
+      <h1 className="text-xl font-bold">💬 Messages</h1>
 
-        return (
-          <Link
-            key={c.id}
-            href={`/messages/${c.id}`}
-            className="flex items-center gap-3 bg-white p-3 rounded shadow mb-2"
-          >
-            <img
-              src={userData?.photo || "/default-avatar.png"}
-              className="w-10 h-10 rounded-full"
-            />
+      {conversations.length === 0 && (
+        <p className="text-gray-500">No chats yet</p>
+      )}
 
-            <div className="flex-1">
-              <p className="font-semibold">
-                {c.isGroup ? c.name : userData?.name || "User"}
-              </p>
+      {conversations.map((c) => (
+        <Link
+          key={c.id}
+          href={`/messages/${c.id}`}
+          className="block p-3 bg-white rounded-lg shadow"
+        >
+          <p className="font-semibold">
+            {c.name || "Conversation"}
+          </p>
 
-              <p className="text-sm text-gray-500">
-                {c.lastMessage}
-              </p>
-            </div>
-          </Link>
-        );
-      })}
+          <p className="text-sm text-gray-500">
+            {c.lastMessage || "Start chatting..."}
+          </p>
+        </Link>
+      ))}
     </main>
   );
 }

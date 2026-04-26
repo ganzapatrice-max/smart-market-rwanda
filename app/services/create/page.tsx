@@ -2,19 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
-import { addDoc } from "firebase/firestore";
-
-// AFTER saving to "services"
-await addDoc(collection(db, "posts"), {
-  userId: user.uid,
-  text: title + " - " + description,
-  media: "",
-  type: "service",
-  price,
-  location,
-  phone,
-  createdAt: serverTimestamp(),
-});
 import {
   addDoc,
   collection,
@@ -53,7 +40,7 @@ export default function CreateService() {
   }, [router]);
 
   //////////////////////////////////////////////////////
-  // CREATE SERVICE
+  // CREATE SERVICE + PUSH TO FEED
   //////////////////////////////////////////////////////
   const createService = async () => {
     if (!user) return;
@@ -66,7 +53,8 @@ export default function CreateService() {
     try {
       setLoading(true);
 
-      await addDoc(collection(db, "services"), {
+      // 1️⃣ SAVE SERVICE
+      const serviceRef = await addDoc(collection(db, "services"), {
         userId: user.uid,
         title: title.trim(),
         description: description.trim(),
@@ -74,14 +62,26 @@ export default function CreateService() {
         category: category || "general",
         location: location || "",
         phone: phone || "",
-
-        // 🔗 IMPORTANT FOR FEED LINKING
-        type: "service",
-
         createdAt: serverTimestamp(),
       });
 
-      alert("✅ Service posted successfully!");
+      // 2️⃣ ALSO PUSH TO FEED (VERY IMPORTANT)
+      await addDoc(collection(db, "posts"), {
+        userId: user.uid,
+        text: `${title} - ${description}`,
+        media: "",
+        type: "service", // 🔥 this makes it appear in feed filter
+        serviceId: serviceRef.id, // 🔗 link to service
+        price: Number(price),
+        location,
+        phone,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        createdAt: serverTimestamp(),
+      });
+
+      alert("✅ Service posted and added to feed!");
 
       router.push("/services");
     } catch (err: any) {
@@ -129,7 +129,7 @@ export default function CreateService() {
 
         {/* CATEGORY */}
         <input
-          placeholder="Category (e.g. Cleaning, Repair...)"
+          placeholder="Category (Cleaning, Repair...)"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
@@ -159,6 +159,7 @@ export default function CreateService() {
         >
           {loading ? "Posting..." : "Post Service"}
         </button>
+
       </div>
     </main>
   );

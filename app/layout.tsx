@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "./Navbar";
+import Link from "next/link";
 
 export const metadata = {
   title: "Smart Market Rwanda",
@@ -15,33 +16,38 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-[#f0f2f5] text-gray-900">
 
-        <Navbar /> {/* 👈 client component */}
+        {/* ✅ NAVBAR (CLIENT COMPONENT) */}
+        <Navbar />
 
+        {/* ✅ MAIN LAYOUT */}
         <div className="max-w-6xl mx-auto flex gap-6 px-4 py-6">
-          
-          {/* LEFT SIDEBAR */}
+
+          {/* ===== LEFT SIDEBAR ===== */}
           <aside className="hidden md:block w-1/4">
             <div className="bg-white p-4 rounded-xl shadow">
               <p className="font-semibold mb-2">Menu</p>
 
               <div className="flex flex-col gap-2 text-sm">
-                <a href="/jobs">💼 Jobs</a>
-                <a href="/market">🛒 Market</a>
-                <a href="/messages">💬 Messages</a>
-                <a href="/settings">⚙️ Settings</a>
+                <Link href="/jobs">💼 Jobs</Link>
+                <Link href="/market">🛒 Market</Link>
+                <Link href="/messages">💬 Messages</Link>
+                <Link href="/settings">⚙️ Settings</Link>
               </div>
             </div>
           </aside>
 
-          {/* CENTER */}
+          {/* ===== CENTER CONTENT ===== */}
           <main className="flex-1 max-w-2xl w-full">
             {children}
           </main>
 
-          {/* RIGHT */}
+          {/* ===== RIGHT PANEL ===== */}
           <aside className="hidden lg:block w-1/4">
             <div className="bg-white p-4 rounded-xl shadow">
-              Suggestions
+              <p className="font-semibold mb-2">Suggestions</p>
+              <p className="text-sm text-gray-600">
+                Discover users, services, and opportunities.
+              </p>
             </div>
           </aside>
 

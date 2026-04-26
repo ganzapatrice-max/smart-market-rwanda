@@ -1,10 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+import { auth, db } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+
+  //////////////////////////////////////////////////////
+  // 🔔 REALTIME NOTIFICATIONS COUNT
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    let unsub: any;
+
+    const authUnsub = auth.onAuthStateChanged((u) => {
+      if (!u) return;
+
+      const q = query(
+        collection(db, "notifications"),
+        where("toUserId", "==", u.uid),
+        where("read", "==", false)
+      );
+
+      unsub = onSnapshot(q, (snap) => {
+        setNotifCount(snap.size);
+      });
+    });
+
+    return () => {
+      authUnsub();
+      if (unsub) unsub();
+    };
+  }, []);
 
   return (
     <header className="bg-blue-600 text-white sticky top-0 z-50">
@@ -13,11 +48,20 @@ export default function Navbar() {
         <h1 className="font-semibold">Smart Market Rwanda</h1>
 
         {/* DESKTOP */}
-        <nav className="hidden md:flex gap-6">
+        <nav className="hidden md:flex gap-6 items-center">
           <Link href="/">🏠</Link>
           <Link href="/profile">👤</Link>
           <Link href="/services">🛠</Link>
-          <Link href="/notifications">🔔</Link>
+
+          {/* 🔔 WITH BADGE */}
+          <Link href="/notifications" className="relative">
+            🔔
+            {notifCount > 0 && (
+              <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs px-1 rounded-full">
+                {notifCount}
+              </span>
+            )}
+          </Link>
         </nav>
 
         {/* MOBILE BUTTON */}
@@ -35,7 +79,16 @@ export default function Navbar() {
           <Link href="/">🏠 Home</Link>
           <Link href="/profile">👤 Profile</Link>
           <Link href="/services">🛠 Services</Link>
-          <Link href="/notifications">🔔 Notifications</Link>
+
+          {/* 🔔 WITH BADGE */}
+          <Link href="/notifications" className="flex justify-between">
+            <span>🔔 Notifications</span>
+            {notifCount > 0 && (
+              <span className="bg-red-600 text-white text-xs px-2 rounded-full">
+                {notifCount}
+              </span>
+            )}
+          </Link>
 
           <hr />
 

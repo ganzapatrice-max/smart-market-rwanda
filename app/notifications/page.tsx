@@ -15,8 +15,8 @@ export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubAuth = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsubAuth();
+    const unsub = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -38,22 +38,18 @@ export default function NotificationsPage() {
   }, [user]);
 
   return (
-    <main className="min-h-screen bg-[#f0f2f5] p-4">
-      <div className="max-w-xl mx-auto bg-white p-4 rounded-xl shadow">
-        <h1 className="text-lg font-bold mb-4">🔔 Notifications</h1>
+    <main className="p-6 text-white bg-black min-h-screen">
+      <h1 className="text-xl font-bold mb-4">🔔 Notifications</h1>
 
-        {notifications.map((n) => (
-          <div key={n.id} className="border-b py-3 text-sm">
-            {n.type === "like" && "👍 Someone liked your post"}
-            {n.type === "comment" && "💬 Someone commented on your post"}
-            {n.type === "follow" && "👤 Someone followed you"}
-          </div>
-        ))}
+      {notifications.length === 0 && <p>No notifications</p>}
 
-        {!notifications.length && (
-          <p className="text-gray-500 text-sm">No notifications yet</p>
-        )}
-      </div>
+      {notifications.map((n) => (
+        <div key={n.id} className="bg-gray-800 p-3 rounded mb-2">
+          <p>
+            <b>{n.type}</b> from {n.fromUserId}
+          </p>
+        </div>
+      ))}
     </main>
   );
 }

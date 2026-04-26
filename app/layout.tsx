@@ -49,14 +49,12 @@ export default function RootLayout({
             <div className="bg-white p-4 rounded-xl shadow mb-4">
               <p className="font-semibold mb-2">Menu</p>
 
-              <div className="flex flex-col gap-2 text-sm">
-                <Link href="/">🏠 Feed</Link>
-                <Link href="/profile">👤 Profile</Link>
-                <Link href="/services">🛠 Services</Link>
-                <Link href="/jobs">💼 Jobs</Link>
-                <Link href="/market">🛒 Market</Link>
-              </div>
-            </div>
+           <div className="flex flex-col gap-2 text-sm">
+  <Link href="/jobs">💼 Jobs</Link>
+  <Link href="/market">🛒 Market</Link>
+  <Link href="/messages">💬 Messages</Link>
+  <Link href="/settings">⚙️ Settings</Link>
+</div>
 
           </aside>
 

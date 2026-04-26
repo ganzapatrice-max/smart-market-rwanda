@@ -110,20 +110,7 @@ export default function FeedPage() {
   return (
     <main className="min-h-screen bg-[#f0f2f5]">
 
-      {/* NAVBAR */}
-      <div className="bg-blue-600 text-white flex justify-between px-6 py-3 sticky top-0 z-50">
-        <h1 className="font-semibold text-lg">Smart Market Rwanda</h1>
-
-        <div className="flex gap-5 text-sm">
-          <Link href="/">🏠 Home</Link>
-          <Link href="/profile">👤 Profile</Link>
-          <Link href="/services">🛠 Services</Link>
-          <Link href="/notifications">🔔</Link>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto py-4 px-2">
-
+     
         {/* CREATE POST */}
         <div className="bg-white p-4 rounded-xl mb-4 shadow-sm">
           <div className="flex gap-3 items-center">

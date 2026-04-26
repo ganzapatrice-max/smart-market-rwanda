@@ -54,13 +54,13 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS (OPTIMIZED)
+  // USERS MAP
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!posts.length) return;
 
     const loadUsers = async () => {
-      const newMap: any = { ...usersMap };
+      const newMap: any = {};
 
       await Promise.all(
         posts.map(async (post) => {
@@ -108,74 +108,51 @@ export default function FeedPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#f0f2f5]">
+    <main className="w-full">
 
-     
-        {/* CREATE POST */}
-        <div className="bg-white p-4 rounded-xl mb-4 shadow-sm">
-          <div className="flex gap-3 items-center">
-            <img
-              src={
-                (user && usersMap[user.uid]?.photo) ||
-                "/default-avatar.png"
-              }
-              className="w-10 h-10 rounded-full"
-            />
+      {/* CREATE POST */}
+      <div className="bg-white p-4 rounded-xl mb-4 shadow-sm">
+        <div className="flex gap-3 items-center">
+          <img
+            src={
+              (user && usersMap[user?.uid]?.photo) ||
+              "/default-avatar.png"
+            }
+            className="w-10 h-10 rounded-full"
+          />
 
-            <input
-              placeholder="What's on your mind?"
-              className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm"
-              onClick={() => router.push("/post")}
-              readOnly
-            />
-          </div>
+          <input
+            placeholder="What's on your mind?"
+            className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm"
+            onClick={() => router.push("/post")}
+            readOnly
+          />
         </div>
+      </div>
 
-        {/* FILTER */}
-        <div className="flex gap-2 mb-4 overflow-x-auto">
-          {["all", "normal", "image", "video", "service"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-sm ${
-                filter === f
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+      {/* FILTER */}
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {["all", "normal", "image", "video", "service"].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1 rounded-full text-sm ${
+              filter === f
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
 
-        {/* STORIES */}
-        <div className="flex gap-3 overflow-x-auto mb-4">
-          {posts
-            .filter((p) => p.type === "video")
-            .map((post) => (
-              <div
-                key={post.id}
-                onClick={() => router.push(`/reel/${post.id}`)}
-                className="min-w-[100px] cursor-pointer"
-              >
-                <div className="rounded-xl overflow-hidden">
-                  <video
-                    src={post.media}
-                    className="h-32 w-full object-cover"
-                    muted
-                  />
-                </div>
+      {/* POSTS */}
+      <div className="space-y-4">
+        {filteredPosts.map((post) => {
+          const userData = usersMap[post.userId];
 
-                <p className="text-xs text-center">
-                  {usersMap[post.userId]?.name || "User"}
-                </p>
-              </div>
-            ))}
-        </div>
-
-        {/* POSTS */}
-        <div className="space-y-4">
-          {filteredPosts.map((post) => (
+          return (
             <div key={post.id} className="bg-white rounded-xl shadow-sm p-4">
 
               {/* HEADER */}
@@ -184,16 +161,18 @@ export default function FeedPage() {
                   <img
                     src={
                       post.photo ||
-                      usersMap[post.userId]?.photo ||
+                      userData?.photo ||
                       "/default-avatar.png"
                     }
                     className="w-10 h-10 rounded-full"
                   />
 
                   <div>
-                    <p className="font-semibold text-sm">
-                      {usersMap[post.userId]?.name || "User"}
+                    {/* ✅ FORCE USER NAME VISIBILITY */}
+                    <p className="font-semibold text-sm text-black">
+                      {userData?.name || "Unknown User"}
                     </p>
+
                     <p className="text-xs text-gray-500">
                       {post.type || "post"}
                     </p>
@@ -221,37 +200,15 @@ export default function FeedPage() {
                 </div>
               </div>
 
-              {/* SERVICE POST */}
-              {post.type === "service" ? (
-                <div className="bg-green-50 p-3 rounded-lg mt-3">
-                  <p className="font-bold">{post.text}</p>
-                  <p className="text-green-600">{post.price} RWF</p>
-                  <p className="text-gray-500 text-sm">{post.location}</p>
-
-                  <div className="flex gap-2 mt-2">
-                    <a
-                      href={`tel:${post.phone}`}
-                      className="bg-green-600 text-white px-3 py-1 rounded"
-                    >
-                      📞 Call
-                    </a>
-
-                    <button
-                      onClick={() =>
-                        router.push(`/services/${post.serviceId || post.id}`)
-                      }
-                      className="bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      View
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                post.text && <p className="my-3">{post.text}</p>
+              {/* ✅ FORCE POST TEXT VISIBILITY */}
+              {post.text && (
+                <p className="my-3 text-black font-medium">
+                  {post.text}
+                </p>
               )}
 
               {/* MEDIA */}
-              {post.media && post.type !== "service" && (
+              {post.media && (
                 <div className="mt-2">
                   {post.type === "video" ? (
                     <video
@@ -271,7 +228,8 @@ export default function FeedPage() {
               {/* COUNTS */}
               <div className="flex justify-between text-xs text-gray-500 mt-3">
                 <span>👍 {post.likes || 0}</span>
-                <span>{post.shares || 0} shares</span>
+                <span>💬</span>
+                <span>↗ {post.shares || 0}</span>
               </div>
 
               {/* ACTIONS */}
@@ -285,9 +243,8 @@ export default function FeedPage() {
               <Comments postId={post.id} postOwnerId={post.userId} />
 
             </div>
-          ))}
-        </div>
-
+          );
+        })}
       </div>
     </main>
   );

@@ -2,17 +2,35 @@
 
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 
 export default function ReelsPage() {
   const [videos, setVideos] = useState<any[]>([]);
-  const videoRefs = useRef<any[]>([]);
 
+  // ✅ FIXED TYPE
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  //////////////////////////////////////////////////////
+  // LOAD VIDEOS
+  //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(collection(db, "posts"), where("type", "==", "video"));
+    const q = query(
+      collection(db, "posts"),
+      where("type", "==", "video")
+    );
 
     const unsub = onSnapshot(q, (snap) => {
-      setVideos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setVideos(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }))
+      );
     });
 
     return () => unsub();
@@ -24,11 +42,11 @@ export default function ReelsPage() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry: any) => {
-          const video = entry.target;
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
 
           if (entry.isIntersecting) {
-            video.play();
+            video.play().catch(() => {});
           } else {
             video.pause();
           }
@@ -44,6 +62,9 @@ export default function ReelsPage() {
     return () => observer.disconnect();
   }, [videos]);
 
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
   return (
     <main className="h-screen overflow-y-scroll snap-y snap-mandatory bg-black">
       {videos.map((video, i) => (
@@ -52,12 +73,14 @@ export default function ReelsPage() {
           className="h-screen flex items-center justify-center snap-start"
         >
           <video
-            ref={(el) => (videoRefs.current[i] = el)}
+            ref={(el) => {
+              videoRefs.current[i] = el; // ✅ FIXED (no return)
+            }}
             src={video.media}
             className="h-full w-full object-cover"
             loop
             muted
-            controls
+            playsInline
           />
         </div>
       ))}

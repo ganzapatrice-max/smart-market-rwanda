@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   collection,
@@ -14,6 +15,8 @@ import {
 } from "firebase/firestore";
 
 export default function ServicesPage() {
+  const router = useRouter();
+
   const [services, setServices] = useState<any[]>([]);
   const [usersMap, setUsersMap] = useState<any>({});
   const [search, setSearch] = useState("");
@@ -37,9 +40,11 @@ export default function ServicesPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD USERS (LINK PROFILE → SERVICES)
+  // LOAD USERS
   //////////////////////////////////////////////////////
   useEffect(() => {
+    if (!services.length) return;
+
     const loadUsers = async () => {
       const map: any = {};
 
@@ -57,17 +62,19 @@ export default function ServicesPage() {
       setUsersMap(map);
     };
 
-    if (services.length) loadUsers();
+    loadUsers();
   }, [services]);
 
   //////////////////////////////////////////////////////
   // FILTER
   //////////////////////////////////////////////////////
   const filtered = services.filter((s) => {
+    const term = search.toLowerCase();
+
     return (
-      s.title?.toLowerCase().includes(search.toLowerCase()) ||
-      s.category?.toLowerCase().includes(search.toLowerCase()) ||
-      s.location?.toLowerCase().includes(search.toLowerCase())
+      s.title?.toLowerCase()?.includes(term) ||
+      s.category?.toLowerCase()?.includes(term) ||
+      s.location?.toLowerCase()?.includes(term)
     );
   });
 
@@ -95,7 +102,7 @@ export default function ServicesPage() {
           placeholder="Search services..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full mb-4 p-3 rounded-full bg-white shadow"
+          className="w-full mb-4 p-3 rounded-full bg-white shadow text-black placeholder-gray-500"
         />
 
         {/* SERVICES LIST */}
@@ -105,7 +112,6 @@ export default function ServicesPage() {
 
               {/* HEADER */}
               <div className="flex items-center gap-3 mb-2">
-
                 <img
                   src={
                     usersMap[s.userId]?.photo ||
@@ -115,7 +121,7 @@ export default function ServicesPage() {
                 />
 
                 <div>
-                  <p className="font-semibold text-sm">
+                  <p className="font-semibold text-sm text-black">
                     {usersMap[s.userId]?.name || "User"}
                   </p>
 
@@ -129,14 +135,14 @@ export default function ServicesPage() {
               </div>
 
               {/* CONTENT */}
-              <h2 className="text-lg font-bold">{s.title}</h2>
+              <h2 className="text-lg font-bold text-black">{s.title}</h2>
 
               <p className="text-sm text-gray-700 mt-1">
                 {s.description}
               </p>
 
               <p className="text-green-600 font-bold mt-2">
-                {s.price} RWF
+                {s.price || 0} RWF
               </p>
 
               <p className="text-xs text-gray-500">
@@ -148,11 +154,11 @@ export default function ServicesPage() {
               </p>
 
               {/* ACTIONS */}
-              <div className="flex gap-3 mt-3">
+              <div className="flex flex-wrap gap-2 mt-3">
 
                 <a
                   href={`tel:${s.phone}`}
-                  className="bg-green-600 text-white px-4 py-1 rounded"
+                  className="bg-green-600 text-white px-3 py-1 rounded text-sm"
                 >
                   📞 Call
                 </a>
@@ -160,31 +166,32 @@ export default function ServicesPage() {
                 <a
                   href={`https://wa.me/${s.phone}`}
                   target="_blank"
-                  className="bg-green-500 text-white px-4 py-1 rounded"
+                  className="bg-green-500 text-white px-3 py-1 rounded text-sm"
                 >
                   💬 WhatsApp
                 </a>
 
                 <Link
                   href={`/profile/${s.userId}`}
-                  className="bg-blue-600 text-white px-4 py-1 rounded"
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
                 >
-                  View Seller
+                  Seller
                 </Link>
 
-
+                {/* ✅ FIXED BUY BUTTON */}
                 <button
-  onClick={() => router.push(`/checkout/${post.id}`)}
-  className="bg-green-600 text-white px-4 py-2 rounded"
->
-  💳 Buy Now
-</button>
+                  onClick={() => router.push(`/checkout/${s.id}`)}
+                  className="bg-black text-white px-3 py-1 rounded text-sm"
+                >
+                  💳 Buy
+                </button>
+
               </div>
             </div>
           ))}
         </div>
 
-        {/* EMPTY STATE */}
+        {/* EMPTY */}
         {filtered.length === 0 && (
           <p className="text-center text-gray-500 mt-10">
             No services found.

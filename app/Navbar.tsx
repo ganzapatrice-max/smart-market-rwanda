@@ -83,6 +83,7 @@ export default function Navbar() {
           <Link href="/">🏠</Link>
           <Link href="/profile">👤</Link>
           <Link href="/services">🛠</Link>
+          <Link href="/orders">💼</Link>
 
           {/* ➕ POST BUTTON */}
           <Link

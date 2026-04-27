@@ -7,44 +7,80 @@ import {
   query,
   where,
   onSnapshot,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
 
+  //////////////////////////////////////////////////////
+  // AUTH
+  //////////////////////////////////////////////////////
   useEffect(() => {
-    auth.onAuthStateChanged(setUser);
+    const unsub = auth.onAuthStateChanged(setUser);
+    return () => unsub();
   }, []);
 
+  //////////////////////////////////////////////////////
+  // LOAD ORDERS (SELLER SIDE)
+  //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
 
     const q = query(
       collection(db, "orders"),
-      where("buyerId", "==", user.uid)
+      where("sellerId", "==", user.uid)
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      setOrders(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-      );
+      const data = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+
+      setOrders(data);
     });
 
     return () => unsub();
   }, [user]);
 
+  //////////////////////////////////////////////////////
+  // CONFIRM PAYMENT
+  //////////////////////////////////////////////////////
+  const confirmOrder = async (id: string) => {
+    await updateDoc(doc(db, "orders", id), {
+      status: "confirmed",
+    });
+
+    alert("✅ Payment confirmed!");
+  };
+
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
   return (
-    <main className="max-w-xl mx-auto p-4 space-y-3">
-      <h1 className="text-xl font-bold">📦 My Orders</h1>
+    <main className="max-w-2xl mx-auto p-4 space-y-4">
+      <h1 className="text-xl font-bold">💼 Seller Orders</h1>
+
+      {orders.length === 0 && (
+        <p className="text-gray-500">No orders yet</p>
+      )}
 
       {orders.map((o) => (
-        <div key={o.id} className="bg-white p-3 rounded shadow">
-          <p>Amount: {o.amount} RWF</p>
-          <p>Status: {o.status}</p>
+        <div key={o.id} className="bg-white p-4 rounded shadow">
+          <p><b>Amount:</b> {o.amount} RWF</p>
+          <p><b>Status:</b> {o.status}</p>
+
+          {o.status === "pending" && (
+            <button
+              onClick={() => confirmOrder(o.id)}
+              className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
+            >
+              ✅ Confirm Payment
+            </button>
+          )}
         </div>
       ))}
     </main>

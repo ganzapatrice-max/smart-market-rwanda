@@ -80,6 +80,7 @@ export default function CheckoutPage() {
     platformFee,
     sellerAmount,
     status: "pending",
+      payoutStatus: "pending", // ✅ ADD THIS
     createdAt: serverTimestamp(),
   });
 

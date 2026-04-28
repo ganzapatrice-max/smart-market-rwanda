@@ -148,6 +148,8 @@ export default function Navbar() {
         💼 Orders
       </Link>
 
+      <Link href="/admin/earnings">💰 Earnings</Link>
+
       <Link onClick={() => setOpen(false)} href="/notifications" className="flex justify-between py-2 border-b border-blue-500">
         <span>🔔 Notifications</span>
         {notifCount > 0 && (

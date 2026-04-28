@@ -106,42 +106,75 @@ export default function Navbar() {
 
         {/* MOBILE BUTTON */}
         <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden text-2xl"
-        >
-          ☰
-        </button>
+  onClick={() => setOpen(!open)}
+  className="md:hidden text-2xl focus:outline-none"
+>
+  ☰
+</button>
       </div>
 
-      {/* MOBILE MENU */}
-      {open && (
-        <div className="md:hidden bg-blue-700 px-4 py-3 space-y-2">
+  {/* MOBILE MENU */}
+{open && (
+  <div className="fixed inset-0 z-40">
 
-          <Link href="/">🏠 Home</Link>
-          <Link href="/profile">👤 Profile</Link>
-          <Link href="/services">🛠 Services</Link>
+    {/* DARK OVERLAY */}
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={() => setOpen(false)}
+    />
 
-          {/* ➕ POST */}
-          <Link href="/post">➕ Create Post</Link>
+    {/* SIDE MENU */}
+    <div className="absolute top-0 left-0 h-full w-3/4 bg-blue-700 p-5 space-y-4 shadow-lg">
 
-          {/* 🔔 */}
-          <Link href="/notifications" className="flex justify-between">
-            <span>🔔 Notifications</span>
-            {notifCount > 0 && (
-              <span className="bg-red-600 text-white text-xs px-2 rounded-full">
-                {notifCount}
-              </span>
-            )}
-          </Link>
+      <h2 className="text-lg font-bold mb-3">Menu</h2>
 
-          <hr />
+      <Link onClick={() => setOpen(false)} href="/" className="block py-2 border-b border-blue-500">
+        🏠 Home
+      </Link>
 
-          <Link href="/jobs">💼 Jobs</Link>
-          <Link href="/market">🛒 Market</Link>
-          <Link href="/messages">💬 Messages</Link>
-          <Link href="/settings">⚙️ Settings</Link>
-        </div>
-      )}
+      <Link onClick={() => setOpen(false)} href="/profile" className="block py-2 border-b border-blue-500">
+        👤 Profile
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/services" className="block py-2 border-b border-blue-500">
+        🛠 Services
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/post" className="block py-2 border-b border-blue-500">
+        ➕ Create Post
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/orders" className="block py-2 border-b border-blue-500">
+        💼 Orders
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/notifications" className="flex justify-between py-2 border-b border-blue-500">
+        <span>🔔 Notifications</span>
+        {notifCount > 0 && (
+          <span className="bg-red-600 text-white text-xs px-2 rounded-full">
+            {notifCount}
+          </span>
+        )}
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/messages" className="block py-2 border-b border-blue-500">
+        💬 Messages
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/jobs" className="block py-2 border-b border-blue-500">
+        💼 Jobs
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/market" className="block py-2 border-b border-blue-500">
+        🛒 Market
+      </Link>
+
+      <Link onClick={() => setOpen(false)} href="/settings" className="block py-2">
+        ⚙️ Settings
+      </Link>
+    </div>
+  </div>
+)}
     </header>
   );
 }

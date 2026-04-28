@@ -15,9 +15,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-//////////////////////////////////////////////////////
-// ✅ TYPE
-//////////////////////////////////////////////////////
 type Notification = {
   id: string;
   toUserId: string;
@@ -35,6 +32,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [usersMap, setUsersMap] = useState<any>({});
   const [popup, setPopup] = useState<string | null>(null);
+  const [prevCount, setPrevCount] = useState(0); // ✅ track new notifications
 
   //////////////////////////////////////////////////////
   // 🔊 SOUND
@@ -48,12 +46,12 @@ export default function NotificationsPage() {
   // AUTH
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => setUser(u));
+    const unsub = auth.onAuthStateChanged(setUser);
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // 🔥 LOAD NOTIFICATIONS (REALTIME)
+  // 🔥 LOAD NOTIFICATIONS
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
@@ -70,20 +68,21 @@ export default function NotificationsPage() {
         ...(doc.data() as Omit<Notification, "id">),
       }));
 
-      // 🔊 SOUND + 💬 POPUP (only if new comes)
-      if (data.length > notifications.length) {
+      // ✅ detect NEW notification
+      if (snap.size > prevCount) {
         const latest = data[0];
-        const name = usersMap[latest.fromUserId]?.name || "Someone";
+        const name = usersMap[latest?.fromUserId]?.name || "Someone";
 
         playSound();
-        setPopup(`${name} ${latest.type} your post`);
+        setPopup(getMessage(latest, name));
 
         setTimeout(() => setPopup(null), 3000);
       }
 
+      setPrevCount(snap.size);
       setNotifications(data);
 
-      // ✅ mark as read
+      // mark as read
       data.forEach(async (n) => {
         if (!n.read) {
           await updateDoc(doc(db, "notifications", n.id), {
@@ -94,7 +93,7 @@ export default function NotificationsPage() {
     });
 
     return () => unsub();
-  }, [user, notifications.length, usersMap]);
+  }, [user, prevCount]); // ✅ FIXED dependencies
 
   //////////////////////////////////////////////////////
   // LOAD USERS
@@ -123,22 +122,26 @@ export default function NotificationsPage() {
   }, [notifications]);
 
   //////////////////////////////////////////////////////
-  // MESSAGE FORMAT
+  // MESSAGE FORMAT ✅ FIXED
   //////////////////////////////////////////////////////
-  const getMessage = (n: Notification) => {
-    const name = usersMap[n.fromUserId]?.name || "Someone";
+  const getMessage = (n: Notification, name?: string) => {
+    const userName = name || usersMap[n.fromUserId]?.name || "Someone";
 
     switch (n.type) {
       case "like":
-        return `${name} liked your post`;
+        return `${userName} liked your post`;
       case "comment":
-        return `${name} commented on your post`;
+        return `${userName} commented on your post`;
       case "follow":
-        return `${name} followed you`;
+        return `${userName} followed you`;
       case "share":
-        return `${name} shared your post`;
+        return `${userName} shared your post`;
+      case "payment_confirmed":
+        return `${userName} confirmed your payment`;
+      case "payment_received":
+        return `You received payment from ${userName}`;
       default:
-        return `${name} sent a notification`;
+        return `${userName} sent a notification`;
     }
   };
 
@@ -148,7 +151,6 @@ export default function NotificationsPage() {
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
 
-      {/* 💬 POPUP */}
       {popup && (
         <div className="fixed top-16 right-4 bg-black text-white px-4 py-2 rounded shadow-lg z-50">
           {popup}
@@ -169,7 +171,7 @@ export default function NotificationsPage() {
             key={n.id}
             onClick={() => {
               if (n.postId) {
-                router.push(`/post/${n.postId}`); // 👉 OPEN POST
+                router.push(`/post/${n.postId}`);
               }
             }}
             className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer ${

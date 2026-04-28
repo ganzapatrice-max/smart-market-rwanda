@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db, auth } from "@/lib/firebase";
+
 import {
   collection,
   query,
@@ -9,11 +10,21 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
+
+type Order = {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  amount: number;
+  status: string;
+};
 
 export default function OrdersPage() {
   const [user, setUser] = useState<any>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   //////////////////////////////////////////////////////
   // AUTH
@@ -35,9 +46,9 @@ export default function OrdersPage() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({
+      const data: Order[] = snap.docs.map((d) => ({
         id: d.id,
-        ...d.data(),
+        ...(d.data() as Omit<Order, "id">),
       }));
 
       setOrders(data);
@@ -47,14 +58,33 @@ export default function OrdersPage() {
   }, [user]);
 
   //////////////////////////////////////////////////////
-  // CONFIRM PAYMENT
+  // CONFIRM PAYMENT + NOTIFICATIONS 🔥
   //////////////////////////////////////////////////////
-  const confirmOrder = async (id: string) => {
-    await updateDoc(doc(db, "orders", id), {
+  const confirmOrder = async (order: Order) => {
+    // ✅ update order
+    await updateDoc(doc(db, "orders", order.id), {
       status: "confirmed",
     });
 
-    alert("✅ Payment confirmed!");
+    // 🔔 notify buyer
+    await addDoc(collection(db, "notifications"), {
+      toUserId: order.buyerId,
+      fromUserId: order.sellerId,
+      type: "payment_confirmed",
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+
+    // 🔔 notify seller (you)
+    await addDoc(collection(db, "notifications"), {
+      toUserId: order.sellerId,
+      fromUserId: order.buyerId,
+      type: "payment_received",
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+
+    alert("✅ Payment confirmed & notifications sent!");
   };
 
   //////////////////////////////////////////////////////
@@ -75,7 +105,7 @@ export default function OrdersPage() {
 
           {o.status === "pending" && (
             <button
-              onClick={() => confirmOrder(o.id)}
+              onClick={() => confirmOrder(o)}
               className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
             >
               ✅ Confirm Payment

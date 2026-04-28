@@ -9,22 +9,33 @@ import {
   orderBy,
 } from "firebase/firestore";
 
+// ✅ ADD TYPE
+type Earning = {
+  id: string;
+  amount: number;
+  orderId?: string;
+  createdAt?: any;
+};
+
 export default function EarningsPage() {
-  const [earnings, setEarnings] = useState<any[]>([]);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const q = query(collection(db, "earnings"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "earnings"),
+      orderBy("createdAt", "desc")
+    );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((doc) => ({
+      const data: Earning[] = snap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as Omit<Earning, "id">),
       }));
 
       setEarnings(data);
 
-      // 💰 calculate total
+      // ✅ FIXED (Type safe)
       const sum = data.reduce((acc, e) => acc + (e.amount || 0), 0);
       setTotal(sum);
     });

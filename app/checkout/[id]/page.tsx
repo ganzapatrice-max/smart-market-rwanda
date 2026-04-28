@@ -59,21 +59,42 @@ export default function CheckoutPage() {
   // CONFIRM PAYMENT
   //////////////////////////////////////////////////////
   const confirmPayment = async () => {
-    if (!user || !product) return;
+  if (!user || !product) return;
 
-    await addDoc(collection(db, "orders"), {
-      buyerId: user.uid,
-      sellerId: product.userId,
-      productId: id,
-      amount: product.price || 0,
-      status: "pending",
-      createdAt: serverTimestamp(),
-    });
+  // ❌ block self-buy
+  if (user.uid === product.userId) {
+    alert("You cannot buy your own product");
+    return;
+  }
 
-    alert("✅ Order created! Seller will confirm payment.");
+  // 💰 PLATFORM LOGIC
+  const price = product.price || 0;
+  const platformFee = price * 0.1; // 10% for you
+  const sellerAmount = price - platformFee;
 
-    router.push("/");
-  };
+  const orderRef = await addDoc(collection(db, "orders"), {
+    buyerId: user.uid,
+    sellerId: product.userId,
+    productId: id,
+    amount: price,
+    platformFee,
+    sellerAmount,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+
+  // 💸 SAVE YOUR EARNING
+  await addDoc(collection(db, "earnings"), {
+    amount: platformFee,
+    orderId: orderRef.id,
+    createdAt: serverTimestamp(),
+  });
+
+  alert("✅ Order created! Seller will confirm payment.");
+
+  router.push("/");
+};
+
 
   //////////////////////////////////////////////////////
   // UI

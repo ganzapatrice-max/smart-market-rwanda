@@ -15,12 +15,17 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+//////////////////////////////////////////////////////
+// ✅ TYPE (UPGRADED)
+//////////////////////////////////////////////////////
 type Notification = {
   id: string;
   toUserId: string;
   fromUserId: string;
   type: string;
   postId?: string;
+  orderId?: string;   // ✅ NEW
+  amount?: number;    // ✅ NEW
   createdAt?: any;
   read?: boolean;
 };
@@ -32,7 +37,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [usersMap, setUsersMap] = useState<any>({});
   const [popup, setPopup] = useState<string | null>(null);
-  const [prevCount, setPrevCount] = useState(0); // ✅ track new notifications
+  const [prevCount, setPrevCount] = useState(0);
 
   //////////////////////////////////////////////////////
   // 🔊 SOUND
@@ -49,6 +54,30 @@ export default function NotificationsPage() {
     const unsub = auth.onAuthStateChanged(setUser);
     return () => unsub();
   }, []);
+
+  //////////////////////////////////////////////////////
+  // MESSAGE FORMAT (🔥 UPGRADED)
+  //////////////////////////////////////////////////////
+  const getMessage = (n: Notification, name?: string) => {
+    const userName = name || usersMap[n.fromUserId]?.name || "Someone";
+
+    switch (n.type) {
+      case "payment_confirmed":
+        return `${userName} confirmed your payment (${n.amount || 0} RWF)`;
+
+      case "payment_received":
+        return `You received ${n.amount || 0} RWF from ${userName}`;
+
+      case "like":
+        return `${userName} liked your post`;
+
+      case "comment":
+        return `${userName} commented on your post`;
+
+      default:
+        return `${userName} sent a notification`;
+    }
+  };
 
   //////////////////////////////////////////////////////
   // 🔥 LOAD NOTIFICATIONS
@@ -68,10 +97,10 @@ export default function NotificationsPage() {
         ...(doc.data() as Omit<Notification, "id">),
       }));
 
-      // ✅ detect NEW notification
-      if (snap.size > prevCount) {
+      // ✅ detect NEW notification (FIXED)
+      if (snap.size > prevCount && data.length > 0) {
         const latest = data[0];
-        const name = usersMap[latest?.fromUserId]?.name || "Someone";
+        const name = usersMap[latest.fromUserId]?.name || "Someone";
 
         playSound();
         setPopup(getMessage(latest, name));
@@ -93,7 +122,7 @@ export default function NotificationsPage() {
     });
 
     return () => unsub();
-  }, [user, prevCount]); // ✅ FIXED dependencies
+  }, [user, prevCount, usersMap]);
 
   //////////////////////////////////////////////////////
   // LOAD USERS
@@ -122,26 +151,13 @@ export default function NotificationsPage() {
   }, [notifications]);
 
   //////////////////////////////////////////////////////
-  // MESSAGE FORMAT ✅ FIXED
+  // CLICK HANDLER (🔥 UPGRADED)
   //////////////////////////////////////////////////////
-  const getMessage = (n: Notification, name?: string) => {
-    const userName = name || usersMap[n.fromUserId]?.name || "Someone";
-
-    switch (n.type) {
-      case "like":
-        return `${userName} liked your post`;
-      case "comment":
-        return `${userName} commented on your post`;
-      case "follow":
-        return `${userName} followed you`;
-      case "share":
-        return `${userName} shared your post`;
-      case "payment_confirmed":
-        return `${userName} confirmed your payment`;
-      case "payment_received":
-        return `You received payment from ${userName}`;
-      default:
-        return `${userName} sent a notification`;
+  const handleClick = (n: Notification) => {
+    if (n.orderId) {
+      router.push(`/orders`); // 👉 open orders page
+    } else if (n.postId) {
+      router.push(`/post/${n.postId}`);
     }
   };
 
@@ -151,6 +167,7 @@ export default function NotificationsPage() {
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
 
+      {/* 💬 POPUP */}
       {popup && (
         <div className="fixed top-16 right-4 bg-black text-white px-4 py-2 rounded shadow-lg z-50">
           {popup}
@@ -169,11 +186,7 @@ export default function NotificationsPage() {
         return (
           <div
             key={n.id}
-            onClick={() => {
-              if (n.postId) {
-                router.push(`/post/${n.postId}`);
-              }
-            }}
+            onClick={() => handleClick(n)}
             className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer ${
               n.read ? "bg-gray-100" : "bg-blue-50"
             }`}

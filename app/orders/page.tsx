@@ -20,6 +20,7 @@ type Order = {
   sellerId: string;
   amount: number;
   status: string;
+  proofImage?: string; // ✅ NEW
 };
 
 export default function OrdersPage() {
@@ -58,10 +59,9 @@ export default function OrdersPage() {
   }, [user]);
 
   //////////////////////////////////////////////////////
-  // CONFIRM PAYMENT + NOTIFICATIONS 🔥
+  // ✅ CONFIRM PAYMENT
   //////////////////////////////////////////////////////
   const confirmOrder = async (order: Order) => {
-    // ✅ update order
     await updateDoc(doc(db, "orders", order.id), {
       status: "confirmed",
     });
@@ -71,20 +71,45 @@ export default function OrdersPage() {
       toUserId: order.buyerId,
       fromUserId: order.sellerId,
       type: "payment_confirmed",
+      amount: order.amount,
+      orderId: order.id,
       createdAt: serverTimestamp(),
       read: false,
     });
 
-    // 🔔 notify seller (you)
+    // 🔔 notify seller
     await addDoc(collection(db, "notifications"), {
       toUserId: order.sellerId,
       fromUserId: order.buyerId,
       type: "payment_received",
+      amount: order.amount,
+      orderId: order.id,
       createdAt: serverTimestamp(),
       read: false,
     });
 
-    alert("✅ Payment confirmed & notifications sent!");
+    alert("✅ Payment confirmed!");
+  };
+
+  //////////////////////////////////////////////////////
+  // ❌ REJECT PAYMENT (ANTI-FRAUD)
+  //////////////////////////////////////////////////////
+  const rejectOrder = async (order: Order) => {
+    await updateDoc(doc(db, "orders", order.id), {
+      status: "rejected",
+    });
+
+    await addDoc(collection(db, "notifications"), {
+      toUserId: order.buyerId,
+      fromUserId: order.sellerId,
+      type: "payment_rejected",
+      amount: order.amount,
+      orderId: order.id,
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+
+    alert("❌ Payment rejected");
   };
 
   //////////////////////////////////////////////////////
@@ -100,16 +125,37 @@ export default function OrdersPage() {
 
       {orders.map((o) => (
         <div key={o.id} className="bg-white p-4 rounded shadow">
+
           <p><b>Amount:</b> {o.amount} RWF</p>
           <p><b>Status:</b> {o.status}</p>
 
-          {o.status === "pending" && (
-            <button
-              onClick={() => confirmOrder(o)}
-              className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              ✅ Confirm Payment
-            </button>
+          {/* 📸 PAYMENT PROOF */}
+          {o.proofImage && (
+            <img
+              src={o.proofImage}
+              className="w-full mt-2 rounded"
+            />
+          )}
+
+          {/* ACTIONS */}
+          {o.status === "pending_verification" && (
+            <div className="flex gap-2 mt-3">
+
+              <button
+                onClick={() => confirmOrder(o)}
+                className="bg-green-600 text-white px-4 py-2 rounded"
+              >
+                ✅ Confirm
+              </button>
+
+              <button
+                onClick={() => rejectOrder(o)}
+                className="bg-red-600 text-white px-4 py-2 rounded"
+              >
+                ❌ Reject
+              </button>
+
+            </div>
           )}
         </div>
       ))}

@@ -15,17 +15,14 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-//////////////////////////////////////////////////////
-// ✅ TYPE (UPGRADED)
-//////////////////////////////////////////////////////
 type Notification = {
   id: string;
   toUserId: string;
   fromUserId: string;
   type: string;
   postId?: string;
-  orderId?: string;   // ✅ NEW
-  amount?: number;    // ✅ NEW
+  orderId?: string;
+  amount?: number;
   createdAt?: any;
   read?: boolean;
 };
@@ -56,31 +53,37 @@ export default function NotificationsPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // MESSAGE FORMAT (🔥 UPGRADED)
+  // MESSAGE FORMAT
   //////////////////////////////////////////////////////
-  const getMessage = (n: Notification, name?: string) => {
-    const userName = name || usersMap[n.fromUserId]?.name || "Someone";
+  const getMessage = (n: Notification) => {
+    const name = usersMap[n.fromUserId]?.name || "Someone";
 
     switch (n.type) {
       case "payment_confirmed":
-        return `${userName} confirmed your payment (${n.amount || 0} RWF)`;
+        return `${name} confirmed your payment (${n.amount || 0} RWF)`;
 
       case "payment_received":
-        return `You received ${n.amount || 0} RWF from ${userName}`;
+        return `You received ${n.amount || 0} RWF from ${name}`;
+
+      case "payment_rejected":
+        return `${name} rejected your payment`;
+
+      case "new_order":
+        return `${name} placed a new order (${n.amount || 0} RWF)`;
 
       case "like":
-        return `${userName} liked your post`;
+        return `${name} liked your post`;
 
       case "comment":
-        return `${userName} commented on your post`;
+        return `${name} commented on your post`;
 
       default:
-        return `${userName} sent a notification`;
+        return `${name} sent a notification`;
     }
   };
 
   //////////////////////////////////////////////////////
-  // 🔥 LOAD NOTIFICATIONS
+  // 🔥 LOAD NOTIFICATIONS (FIXED)
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!user) return;
@@ -97,13 +100,10 @@ export default function NotificationsPage() {
         ...(doc.data() as Omit<Notification, "id">),
       }));
 
-      // ✅ detect NEW notification (FIXED)
+      // ✅ detect NEW notification safely
       if (snap.size > prevCount && data.length > 0) {
-        const latest = data[0];
-        const name = usersMap[latest.fromUserId]?.name || "Someone";
-
         playSound();
-        setPopup(getMessage(latest, name));
+        setPopup(getMessage(data[0]));
 
         setTimeout(() => setPopup(null), 3000);
       }
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
       setPrevCount(snap.size);
       setNotifications(data);
 
-      // mark as read
+      // ✅ mark as read (safe)
       data.forEach(async (n) => {
         if (!n.read) {
           await updateDoc(doc(db, "notifications", n.id), {
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
     });
 
     return () => unsub();
-  }, [user, prevCount, usersMap]);
+  }, [user, prevCount]); // ✅ FIXED (removed usersMap)
 
   //////////////////////////////////////////////////////
   // LOAD USERS
@@ -151,12 +151,15 @@ export default function NotificationsPage() {
   }, [notifications]);
 
   //////////////////////////////////////////////////////
-  // CLICK HANDLER (🔥 UPGRADED)
+  // CLICK HANDLER
   //////////////////////////////////////////////////////
   const handleClick = (n: Notification) => {
     if (n.orderId) {
-      router.push(`/orders`); // 👉 open orders page
-    } else if (n.postId) {
+      router.push(`/orders`);
+      return;
+    }
+
+    if (n.postId) {
       router.push(`/post/${n.postId}`);
     }
   };
@@ -167,7 +170,6 @@ export default function NotificationsPage() {
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
 
-      {/* 💬 POPUP */}
       {popup && (
         <div className="fixed top-16 right-4 bg-black text-white px-4 py-2 rounded shadow-lg z-50">
           {popup}

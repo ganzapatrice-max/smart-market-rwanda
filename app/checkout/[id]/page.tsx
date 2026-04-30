@@ -17,6 +17,7 @@ export default function CheckoutPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [proof, setProof] = useState<string | null>(null); // ✅ NEW
 
   //////////////////////////////////////////////////////
   // AUTH
@@ -27,25 +28,21 @@ export default function CheckoutPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD PRODUCT (✅ FIXED HERE)
+  // LOAD PRODUCT
   //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
       if (!id) return;
 
       try {
-        // ✅ FIRST: try services
         let snap = await getDoc(doc(db, "services", id as string));
 
-        // ✅ FALLBACK: try posts
         if (!snap.exists()) {
           snap = await getDoc(doc(db, "posts", id as string));
         }
 
         if (snap.exists()) {
           setProduct(snap.data());
-        } else {
-          console.log("❌ Product not found");
         }
       } catch (err) {
         console.error(err);
@@ -59,43 +56,59 @@ export default function CheckoutPage() {
   // CONFIRM PAYMENT
   //////////////////////////////////////////////////////
   const confirmPayment = async () => {
-  if (!user || !product) return;
+    if (!user || !product) return;
 
-  // ❌ block self-buy
-  if (user.uid === product.userId) {
-    alert("You cannot buy your own product");
-    return;
-  }
+    // ❌ block self-buy
+    if (user.uid === product.userId) {
+      alert("You cannot buy your own product");
+      return;
+    }
 
-  // 💰 PLATFORM LOGIC
-  const price = product.price || 0;
-  const platformFee = price * 0.1; // 10% for you
-  const sellerAmount = price - platformFee;
+    // ❌ require proof (ANTI-FRAUD)
+    if (!proof) {
+      alert("Please upload payment proof");
+      return;
+    }
 
-  const orderRef = await addDoc(collection(db, "orders"), {
-    buyerId: user.uid,
-    sellerId: product.userId,
-    productId: id,
-    amount: price,
-    platformFee,
-    sellerAmount,
-    status: "pending",
-      payoutStatus: "pending", // ✅ ADD THIS
-    createdAt: serverTimestamp(),
-  });
+    const price = product.price || 0;
+    const platformFee = price * 0.1;
+    const sellerAmount = price - platformFee;
 
-  // 💸 SAVE YOUR EARNING
-  await addDoc(collection(db, "earnings"), {
-    amount: platformFee,
-    orderId: orderRef.id,
-    createdAt: serverTimestamp(),
-  });
+    const orderRef = await addDoc(collection(db, "orders"), {
+      buyerId: user.uid,
+      sellerId: product.userId,
+      productId: id,
+      amount: price,
+      platformFee,
+      sellerAmount,
+      proofImage: proof, // ✅ NEW
+      status: "pending_verification", // ✅ UPDATED
+      payoutStatus: "pending",
+      createdAt: serverTimestamp(),
+    });
 
-  alert("✅ Order created! Seller will confirm payment.");
+    // 💰 SAVE YOUR EARNING
+    await addDoc(collection(db, "earnings"), {
+      amount: platformFee,
+      orderId: orderRef.id,
+      createdAt: serverTimestamp(),
+    });
 
-  router.push("/");
-};
+    // 🔔 NOTIFY SELLER
+    await addDoc(collection(db, "notifications"), {
+      toUserId: product.userId,
+      fromUserId: user.uid,
+      type: "new_order",
+      amount: price,
+      orderId: orderRef.id,
+      createdAt: serverTimestamp(),
+      read: false,
+    });
 
+    alert("✅ Order sent! Waiting for seller confirmation.");
+
+    router.push("/");
+  };
 
   //////////////////////////////////////////////////////
   // UI
@@ -122,6 +135,17 @@ export default function CheckoutPage() {
         <p className="font-semibold">Pay via Mobile Money</p>
         <p>Send to: <b>078XXXXXXX</b></p>
         <p>Name: Smart Market Rwanda</p>
+      </div>
+
+      {/* 📸 PAYMENT PROOF */}
+      <div>
+        <p className="text-sm mb-1">Upload payment proof</p>
+        <input
+          type="file"
+          onChange={(e) =>
+            setProof(URL.createObjectURL(e.target.files![0]))
+          }
+        />
       </div>
 
       <button

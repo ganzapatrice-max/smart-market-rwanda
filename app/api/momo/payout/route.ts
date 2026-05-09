@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { amount, phone } = await req.json();
-
   try {
+    const { amount, phone } = await req.json();
+
+    // ✅ Validate input
+    if (!amount || !phone) {
+      return NextResponse.json({
+        success: false,
+        error: "Missing amount or phone",
+      });
+    }
+
+    // ✅ Ensure correct phone format (2507XXXXXXXX)
+    const formattedPhone = phone.startsWith("250")
+      ? phone
+      : `250${phone.replace(/^0/, "")}`;
+
     const referenceId = crypto.randomUUID();
 
     const response = await fetch(
@@ -19,11 +32,11 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           amount: amount.toString(),
-          currency: "EUR", // sandbox requirement
+          currency: "EUR", // sandbox only
           externalId: referenceId,
           payer: {
             partyIdType: "MSISDN",
-            partyId: phone,
+            partyId: formattedPhone,
           },
           payerMessage: "Payment",
           payeeNote: "Smart Market",
@@ -31,16 +44,30 @@ export async function POST(req: Request) {
       }
     );
 
+    // ✅ Read response text ONCE
+    const text = await response.text();
+
+    // 🔥 Debug log (VERY IMPORTANT)
+    console.log("MoMo response:", text);
+
     if (response.status !== 202) {
-      const err = await response.text();
-      return NextResponse.json({ success: false, error: err });
+      return NextResponse.json({
+        success: false,
+        error: text,
+      });
     }
 
     return NextResponse.json({
       success: true,
       referenceId,
     });
-  } catch (err) {
-    return NextResponse.json({ success: false, error: err });
+
+  } catch (err: any) {
+    console.error("Server error:", err);
+
+    return NextResponse.json({
+      success: false,
+      error: err.message || "Internal error",
+    });
   }
 }

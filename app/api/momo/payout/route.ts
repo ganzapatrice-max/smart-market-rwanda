@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ✅ Ensure correct phone format (2507XXXXXXXX)
+    // ✅ Format phone → 2507XXXXXXXX
     const formattedPhone = phone.startsWith("250")
       ? phone
       : `250${phone.replace(/^0/, "")}`;
@@ -25,14 +25,14 @@ export async function POST(req: Request) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.MOMO_TOKEN}`,
-        "Ocp-Apim-Subscription-Key": "c3762a4264e14faa8c2d24327666f97d",
+          "Ocp-Apim-Subscription-Key": "c3762a4264e14faa8c2d24327666f97d", // ✅ hardcoded for debug
           "X-Reference-Id": referenceId,
           "X-Target-Environment": "sandbox",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           amount: amount.toString(),
-          currency: "EUR", // sandbox only
+          currency: "EUR", // ✅ sandbox requirement
           externalId: referenceId,
           payer: {
             partyIdType: "MSISDN",
@@ -44,30 +44,33 @@ export async function POST(req: Request) {
       }
     );
 
-    // ✅ Read response text ONCE
-    const text = await response.text();
+    // 🔥 READ RESPONSE ONCE
+    const responseText = await response.text();
 
-    // 🔥 Debug log (VERY IMPORTANT)
-    console.log("MoMo response:", text);
+    // 🔥 LOG EVERYTHING (CRITICAL FOR DEBUG)
+    console.log("MoMo STATUS:", response.status);
+    console.log("MoMo RESPONSE:", responseText);
 
+    // ❌ HANDLE ERROR PROPERLY
     if (response.status !== 202) {
       return NextResponse.json({
         success: false,
-        error: text,
+        error: responseText || `Request failed with status ${response.status}`,
       });
     }
 
+    // ✅ SUCCESS
     return NextResponse.json({
       success: true,
       referenceId,
     });
 
   } catch (err: any) {
-    console.error("Server error:", err);
+    console.error("SERVER ERROR:", err);
 
     return NextResponse.json({
       success: false,
-      error: err.message || "Internal error",
+      error: err.message || "Internal server error",
     });
   }
 }

@@ -34,14 +34,18 @@ export default function CheckoutPage() {
     const load = async () => {
       if (!id) return;
 
-      let snap = await getDoc(doc(db, "services", id as string));
+      try {
+        let snap = await getDoc(doc(db, "services", id as string));
 
-      if (!snap.exists()) {
-        snap = await getDoc(doc(db, "posts", id as string));
-      }
+        if (!snap.exists()) {
+          snap = await getDoc(doc(db, "posts", id as string));
+        }
 
-      if (snap.exists()) {
-        setProduct(snap.data());
+        if (snap.exists()) {
+          setProduct(snap.data());
+        }
+      } catch (err) {
+        console.error("Load product error:", err);
       }
     };
 
@@ -52,70 +56,70 @@ export default function CheckoutPage() {
   // 💰 MOMO PAYMENT
   //////////////////////////////////////////////////////
   const payWithMoMo = async () => {
-  if (!user || !product) return;
+    if (!user || !product) return;
 
-  if (user.uid === product.userId) {
-    alert("You cannot buy your own product");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const res = await fetch("/api/momo/payout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: product.price,
-        phone: "0789036156", // ✅ use LOCAL format (backend converts)
-      }),
-    });
-
-    const data = await res.json();
-
-    // 🔥 SHOW REAL ERROR (IMPORTANT)
-    if (!data.success) {
-      console.error("MoMo Error:", data.error);
-      alert("❌ " + data.error); // 👈 NOW YOU SEE REAL ISSUE
-      setLoading(false);
+    if (user.uid === product.userId) {
+      alert("You cannot buy your own product");
       return;
     }
 
-    const referenceId = data.referenceId;
+    setLoading(true);
 
-    // ✅ SAVE ORDER
-    await addDoc(collection(db, "orders"), {
-      buyerId: user.uid,
-      sellerId: product.userId,
-      productId: id,
-      amount: product.price,
-      momoReferenceId: referenceId,
-      status: "pending_payment",
-      createdAt: serverTimestamp(),
-    });
+    try {
+      const res = await fetch("/api/momo/payout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: product.price,
+          phone: "0789036156", // ✅ local format (backend converts)
+        }),
+      });
 
-    alert("📱 Payment request sent! Check your phone.");
+      const data = await res.json();
 
-    router.push("/orders");
+      // 🔥 show real error
+      if (!data.success) {
+        console.error("MoMo Error:", data);
+        alert("❌ " + (data.error || "Payment failed"));
+        setLoading(false);
+        return;
+      }
 
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  }
+      const referenceId = data.referenceId;
 
-  setLoading(false);
-};
+      // ✅ save order
+      await addDoc(collection(db, "orders"), {
+        buyerId: user.uid,
+        sellerId: product.userId,
+        productId: id,
+        amount: product.price,
+        momoReferenceId: referenceId,
+        status: "pending_payment",
+        createdAt: serverTimestamp(),
+      });
+
+      alert("📱 Payment request sent! Check your phone.");
+      router.push("/orders");
+
+    } catch (err: any) {
+      console.error("Request error:", err);
+      alert("❌ Network or server error");
+    }
+
+    setLoading(false);
+  };
+
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
-  if (!product)
+  if (!product) {
     return <p className="p-4">❌ Product not found...</p>;
+  }
 
   return (
     <main className="max-w-xl mx-auto p-4 space-y-4">
-
       <h1 className="text-xl font-bold">💳 Checkout</h1>
 
       <div className="bg-white p-4 rounded shadow">
@@ -127,7 +131,6 @@ export default function CheckoutPage() {
         </p>
       </div>
 
-      {/* ✅ NEW REAL PAYMENT */}
       <div className="bg-green-100 p-4 rounded">
         <p className="font-semibold">Pay with MTN MoMo</p>
         <p>Click below and confirm on your phone 📱</p>
@@ -136,11 +139,10 @@ export default function CheckoutPage() {
       <button
         onClick={payWithMoMo}
         disabled={loading}
-        className="w-full bg-green-600 text-white py-3 rounded"
+        className="w-full bg-green-600 text-white py-3 rounded disabled:opacity-50"
       >
         {loading ? "Processing..." : "💰 Pay Now"}
       </button>
-
     </main>
   );
 }

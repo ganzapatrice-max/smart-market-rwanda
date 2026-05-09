@@ -63,14 +63,14 @@ export default function CheckoutPage() {
 
     try {
       // 👉 call your backend
-      const res = await fetch("/api/momo-pay", {
+      const res = await fetch("/api/momo/payout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           amount: product.price,
-          phone: "250780000000", // 🔥 replace with real user phone later
+          phone: "250789036156", // 🔥 replace with real user phone later
           productId: id,
           sellerId: product.userId,
         }),

@@ -18,31 +18,30 @@ export async function POST(req: Request) {
       : `250${phone.replace(/^0/, "")}`;
 
     const referenceId = crypto.randomUUID();
-
-    const response = await fetch(
-      "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.MOMO_TOKEN}`,
-          "Ocp-Apim-Subscription-Key": "c3762a4264e14faa8c2d24327666f97d", // ✅ hardcoded for debug
-          "X-Reference-Id": referenceId,
-          "X-Target-Environment": "sandbox",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: amount.toString(),
-          currency: "EUR", // ✅ sandbox requirement
-          externalId: referenceId,
-          payer: {
-            partyIdType: "MSISDN",
-            partyId: formattedPhone,
-          },
-          payerMessage: "Payment",
-          payeeNote: "Smart Market",
-        }),
-      }
-    );
+const response = await fetch(
+  "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.MOMO_TOKEN}`, // ✅ MUST be string key
+      "Ocp-Apim-Subscription-Key": "c3762a4264e14faa8c2d24327666f97d", // ✅ REQUIRED
+      "X-Reference-Id": referenceId,
+      "X-Target-Environment": "sandbox",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      amount: amount.toString(),
+      currency: "EUR",
+      externalId: referenceId,
+      payer: {
+        partyIdType: "MSISDN",
+        partyId: formattedPhone,
+      },
+      payerMessage: "Payment",
+      payeeNote: "Smart Market",
+    }),
+  }
+);
 
     // 🔥 READ RESPONSE ONCE
     const responseText = await response.text();

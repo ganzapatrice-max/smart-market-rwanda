@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.MOMO_TOKEN}`,
-          "Ocp-Apim-Subscription-Key": process.env.MOMO_API_KEY!,
+        "Ocp-Apim-Subscription-Key": "c3762a4264e14faa8c2d24327666f97d",
           "X-Reference-Id": referenceId,
           "X-Target-Environment": "sandbox",
           "Content-Type": "application/json",

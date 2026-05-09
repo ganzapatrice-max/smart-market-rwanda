@@ -52,62 +52,61 @@ export default function CheckoutPage() {
   // 💰 MOMO PAYMENT
   //////////////////////////////////////////////////////
   const payWithMoMo = async () => {
-    if (!user || !product) return;
+  if (!user || !product) return;
 
-    if (user.uid === product.userId) {
-      alert("You cannot buy your own product");
+  if (user.uid === product.userId) {
+    alert("You cannot buy your own product");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("/api/momo/payout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: product.price,
+        phone: "0789036156", // ✅ use LOCAL format (backend converts)
+      }),
+    });
+
+    const data = await res.json();
+
+    // 🔥 SHOW REAL ERROR (IMPORTANT)
+    if (!data.success) {
+      console.error("MoMo Error:", data.error);
+      alert("❌ " + data.error); // 👈 NOW YOU SEE REAL ISSUE
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const referenceId = data.referenceId;
 
-    try {
-      // 👉 call your backend
-      const res = await fetch("/api/momo/payout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: product.price,
-          phone: "250789036156", // 🔥 replace with real user phone later
-          productId: id,
-          sellerId: product.userId,
-        }),
-      });
+    // ✅ SAVE ORDER
+    await addDoc(collection(db, "orders"), {
+      buyerId: user.uid,
+      sellerId: product.userId,
+      productId: id,
+      amount: product.price,
+      momoReferenceId: referenceId,
+      status: "pending_payment",
+      createdAt: serverTimestamp(),
+    });
 
-      const data = await res.json();
+    alert("📱 Payment request sent! Check your phone.");
 
-      if (!data.success) {
-        alert("❌ Payment request failed");
-        setLoading(false);
-        return;
-      }
+    router.push("/orders");
 
-      const referenceId = data.referenceId;
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  }
 
-      // 🧾 CREATE ORDER (pending)
-      const orderRef = await addDoc(collection(db, "orders"), {
-        buyerId: user.uid,
-        sellerId: product.userId,
-        productId: id,
-        amount: product.price,
-        momoReferenceId: referenceId,
-        status: "pending_payment",
-        createdAt: serverTimestamp(),
-      });
-
-      alert("📱 Payment request sent! Check your phone.");
-
-      router.push("/orders");
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    }
-
-    setLoading(false);
-  };
-
+  setLoading(false);
+};
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////

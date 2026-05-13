@@ -10,37 +10,64 @@ type Technician = {
   name?: string;
   role?: string;
   photo?: string;
+  photoURL?: string;
   location?: string;
 };
 
 export default function TechniciansPage() {
   const [users, setUsers] = useState<Technician[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  //////////////////////////////////////////////////////
+  // LOAD FROM FIRESTORE
+  //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
-      const snap = await getDocs(collection(db, "workers")); // ✅ FIXED
+      try {
+        const snap = await getDocs(collection(db, "workers"));
 
-      const data = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as any),
-      }));
+        const data = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as any),
+        }));
 
-      const technicians = data.filter(
-        (u) => u.role === "technician"
-      );
+        const technicians = data.filter(
+          (u) => u.role === "technician"
+        );
 
-      setUsers(technicians);
+        console.log("TECHNICIANS:", technicians); // 🔥 DEBUG
+
+        setUsers(technicians);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
   }, []);
 
+  //////////////////////////////////////////////////////
+  // SEARCH
+  //////////////////////////////////////////////////////
   const filtered = users.filter((u) =>
     `${u.name || ""} ${u.location || ""}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#111b21] text-white flex items-center justify-center">
+        Loading...
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#111b21] text-white p-6">
@@ -48,7 +75,7 @@ export default function TechniciansPage() {
         Find Technicians
       </h1>
 
-      {/* ✅ SEARCH BAR */}
+      {/* SEARCH */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -56,19 +83,32 @@ export default function TechniciansPage() {
         className="w-full bg-[#202c33] p-3 rounded-xl mb-5"
       />
 
-      {/* ✅ LIST */}
+      {/* EMPTY STATE */}
+      {filtered.length === 0 && (
+        <p className="text-gray-400 text-center mt-10">
+          No technicians found
+        </p>
+      )}
+
+      {/* LIST */}
       <div className="space-y-3">
         {filtered.map((user) => (
           <Link
             key={user.id}
             href={`/technician/${user.id}`}
-            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl"
+            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl hover:bg-[#2a3942]"
           >
+            {/* PHOTO */}
             <img
-              src={user.photo || "/default-avatar.png"}
+              src={
+                user.photo ||
+                user.photoURL ||
+                "/default-avatar.png"
+              }
               className="w-12 h-12 rounded-full object-cover"
             />
 
+            {/* NAME + LOCATION */}
             <div>
               <p className="font-semibold">
                 {user.name || "No Name"}

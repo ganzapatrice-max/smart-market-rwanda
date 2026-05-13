@@ -25,17 +25,19 @@ export default function TechnicianPage() {
     const loadUser = async () => {
       const currentUser = auth.currentUser;
 
-      if (!currentUser?.email) {
+      if (!currentUser) {
         router.push("/login");
         return;
       }
 
       const snap = await getDoc(
-        doc(db, "users", currentUser.email)
+        doc(db, "workers", currentUser.uid) // ✅ FIXED
       );
 
       if (snap.exists()) {
         setUser(snap.data() as UserData);
+      } else {
+        console.log("No user found in workers");
       }
     };
 
@@ -60,13 +62,13 @@ export default function TechnicianPage() {
       <div className="max-w-md mx-auto bg-[#202c33] rounded-2xl p-6 space-y-4 shadow-xl">
 
         <div className="w-24 h-24 rounded-full bg-gray-700 mx-auto overflow-hidden">
-          {user.photo ? (
+          {user.photo && (
             <img
               src={user.photo}
               alt="Profile"
               className="w-full h-full object-cover"
             />
-          ) : null}
+          )}
         </div>
 
         <h1 className="text-2xl font-bold text-center">
@@ -78,37 +80,34 @@ export default function TechnicianPage() {
         <p>Location: {user.location || "Not set"}</p>
         <p>Skill: {user.service || "Not set"}</p>
 
-        <p className="text-green-400">
-          🟢 Online
-        </p>
+        <p className="text-green-400">🟢 Online</p>
 
         <div className="flex flex-col gap-3 pt-4">
 
           <Link
             href="/technician/patients"
-            className="bg-green-600 p-3 rounded-xl text-center hover:bg-green-700"
+            className="bg-green-600 p-3 rounded-xl text-center"
           >
             Connect to Patients
           </Link>
 
-
           <Link
             href="/technician/post-service"
-            className="bg-purple-600 p-3 rounded-xl text-center hover:bg-purple-700"
+            className="bg-purple-600 p-3 rounded-xl text-center"
           >
             Post Service
           </Link>
 
           <Link
             href="/technician/settings"
-            className="bg-gray-700 p-3 rounded-xl text-center hover:bg-gray-800"
+            className="bg-gray-700 p-3 rounded-xl text-center"
           >
             Settings
           </Link>
 
           <button
             onClick={logout}
-            className="bg-red-600 p-3 rounded-xl hover:bg-red-700"
+            className="bg-red-600 p-3 rounded-xl"
           >
             Logout
           </button>

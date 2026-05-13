@@ -14,7 +14,7 @@ export default function PatientsPage() {
   //////////////////////////////////////////////////////
   useEffect(() => {
     const loadUsers = async () => {
-      const snap = await getDocs(collection(db, "users"));
+      const snap = await getDocs(collection(db, "workers")); // ✅ FIXED
 
       const data = snap.docs.map((doc) => ({
         id: doc.id,
@@ -25,6 +25,8 @@ export default function PatientsPage() {
         (u) => u.role === "patient"
       );
 
+      console.log("PATIENTS:", patients); // ✅ DEBUG
+
       setUsers(patients);
     };
 
@@ -32,10 +34,10 @@ export default function PatientsPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // SEARCH (NAME ONLY)
+  // SEARCH
   //////////////////////////////////////////////////////
   const filtered = users.filter((u) =>
-    (u.name || "")
+    `${u.name || ""} ${u.location || ""}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -45,47 +47,40 @@ export default function PatientsPage() {
   //////////////////////////////////////////////////////
   return (
     <main className="min-h-screen bg-[#111b21] text-white p-6">
-      
       <h1 className="text-2xl font-bold mb-4">
         Find Patients
       </h1>
 
-      {/* ✅ SEARCH */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search patients..."
+        placeholder="Search by name or location..."
         className="w-full bg-[#202c33] p-3 rounded-xl mb-5"
       />
 
-      {/* ✅ CLEAN LIST */}
       <div className="space-y-3">
         {filtered.map((user) => (
           <Link
             key={user.id}
-            href={`/patient/${user.id}`} // ✅ FIXED
+            href={`/patient/${user.id}`}
             className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl hover:bg-[#2a3942]"
           >
-            {/* 👤 PHOTO */}
             <img
-              src={user.photoURL || "https://i.pravatar.cc/150"}
-              alt="profile"
+              src={user.photo || "https://i.pravatar.cc/150"}
               className="w-12 h-12 rounded-full object-cover"
             />
 
-            {/* 👤 NAME */}
             <div>
               <p className="font-semibold">
                 {user.name || "No Name"}
               </p>
               <p className="text-sm text-gray-400">
-                View profile →
+                {user.location || "No location"}
               </p>
             </div>
           </Link>
         ))}
       </div>
-
     </main>
   );
 }

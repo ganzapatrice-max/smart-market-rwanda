@@ -5,23 +5,12 @@ import { db } from "../../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import Link from "next/link";
 
-type UserData = {
-  id: string;
-  name?: string;
-  role?: string;
-  photoURL?: string;
-};
-
 export default function PatientsPage() {
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  //////////////////////////////////////////////////////
-  // LOAD PATIENTS
-  //////////////////////////////////////////////////////
   useEffect(() => {
-    const loadUsers = async () => {
+    const load = async () => {
       const snap = await getDocs(collection(db, "users"));
 
       const data = snap.docs.map((doc) => ({
@@ -29,70 +18,46 @@ export default function PatientsPage() {
         ...(doc.data() as any),
       }));
 
-      const patients = data.filter(
-        (user) => user.role === "patient"
-      );
-
-      setUsers(patients);
-      setLoading(false);
+      setUsers(data.filter((u) => u.role === "patient"));
     };
 
-    loadUsers();
+    load();
   }, []);
 
-  //////////////////////////////////////////////////////
-  // SEARCH
-  //////////////////////////////////////////////////////
-  const filtered = users.filter((user) =>
-    (user.name || "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const filtered = users.filter((u) =>
+    (u.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  //////////////////////////////////////////////////////
-  // UI
-  //////////////////////////////////////////////////////
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#111b21] text-white flex items-center justify-center">
-        Loading...
-      </main>
-    );
-  }
-
   return (
-    <main className="min-h-screen bg-[#111b21] text-white p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        Find Patients
+    <main className="min-h-screen bg-black text-white p-4">
+      
+      <h1 className="text-xl font-bold mb-4">
+        Patients List ✅
       </h1>
 
+      {/* ✅ SEARCH BAR */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search patients..."
-        className="w-full bg-[#202c33] p-3 rounded-xl mb-5"
+        placeholder="Search patient..."
+        className="w-full p-3 rounded bg-gray-800 mb-4"
       />
 
-      {/* ✅ CLEAN LIST */}
+      {/* ✅ SIMPLE LIST */}
       <div className="space-y-3">
         {filtered.map((user) => (
           <Link
             key={user.id}
-            href={`/patient/${user.id}`} // 👈 profile page
-            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl hover:bg-[#2a3942]"
+            href={`/patient/${user.id}`}
+            className="flex items-center gap-3 bg-gray-900 p-3 rounded"
           >
-            {/* 👤 PHOTO */}
             <img
-              src={user.photoURL || "/default-avatar.png"}
-              alt="profile"
-              className="w-12 h-12 rounded-full object-cover"
+              src={user.photoURL || "https://i.pravatar.cc/150"}
+              className="w-12 h-12 rounded-full"
             />
 
-            {/* 👤 NAME */}
             <div>
-              <p className="font-semibold">
-                {user.name || "No Name"}
-              </p>
+              <p>{user.name || "No Name"}</p>
               <p className="text-sm text-gray-400">
                 View profile →
               </p>

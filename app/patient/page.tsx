@@ -24,17 +24,19 @@ export default function PatientPage() {
     const loadUser = async () => {
       const currentUser = auth.currentUser;
 
-      if (!currentUser?.email) {
+      if (!currentUser) {
         router.push("/login");
         return;
       }
 
       const snap = await getDoc(
-        doc(db, "users", currentUser.email)
+        doc(db, "workers", currentUser.uid) // ✅ FIXED
       );
 
       if (snap.exists()) {
         setUser(snap.data() as UserData);
+      } else {
+        console.log("No patient found");
       }
     };
 
@@ -57,6 +59,15 @@ export default function PatientPage() {
   return (
     <main className="min-h-screen bg-[#111b21] text-white p-6">
       <div className="max-w-md mx-auto bg-[#202c33] p-6 rounded-2xl space-y-4">
+
+        <div className="w-24 h-24 rounded-full bg-gray-700 mx-auto overflow-hidden">
+          {user.photo && (
+            <img
+              src={user.photo}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
 
         <h1 className="text-2xl font-bold text-center">
           Hello {user.name} 👋

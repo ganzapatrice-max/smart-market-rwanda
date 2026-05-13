@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db, auth } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 
 type Technician = {
   id: string;
   name?: string;
-  email?: string;
   role?: string;
   photoURL?: string;
 };
@@ -18,20 +16,9 @@ export default function TechniciansPage() {
   const [users, setUsers] = useState<Technician[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [myEmail, setMyEmail] = useState("");
 
   //////////////////////////////////////////////////////
-  // AUTH
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user?.email) setMyEmail(user.email);
-    });
-    return () => unsub();
-  }, []);
-
-  //////////////////////////////////////////////////////
-  // LOAD TECHNICIANS
+  // LOAD TECHNICIANS (NO AUTH BLOCK)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
@@ -43,15 +30,15 @@ export default function TechniciansPage() {
       }));
 
       const technicians = data.filter(
-        (u) => u.role === "technician" && u.email !== myEmail
+        (u) => u.role === "technician"
       );
 
       setUsers(technicians);
       setLoading(false);
     };
 
-    if (myEmail) load();
-  }, [myEmail]);
+    load();
+  }, []);
 
   //////////////////////////////////////////////////////
   // SEARCH
@@ -75,10 +62,12 @@ export default function TechniciansPage() {
 
   return (
     <main className="min-h-screen bg-[#111b21] text-white p-6">
+      
       <h1 className="text-2xl font-bold mb-4">
         Find Technicians
       </h1>
 
+      {/* ✅ SEARCH BAR */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -86,22 +75,19 @@ export default function TechniciansPage() {
         className="w-full bg-[#202c33] p-3 rounded-xl mb-5"
       />
 
-      {/* ✅ CLEAN LIST LIKE WHATSAPP */}
+      {/* ✅ CLEAN LIST */}
       <div className="space-y-3">
         {filtered.map((user) => (
           <Link
             key={user.id}
             href={`/technician/${user.id}`}
-            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl"
+            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl hover:bg-[#2a3942]"
           >
-            {/* 👤 PROFILE PHOTO */}
             <img
-              src={user.photoURL || "/default-avatar.png"}
-              alt="profile"
+              src={user.photoURL || "https://i.pravatar.cc/150"}
               className="w-12 h-12 rounded-full object-cover"
             />
 
-            {/* 👤 NAME */}
             <div>
               <p className="font-semibold">
                 {user.name || "No Name"}
@@ -113,6 +99,7 @@ export default function TechniciansPage() {
           </Link>
         ))}
       </div>
+
     </main>
   );
 }

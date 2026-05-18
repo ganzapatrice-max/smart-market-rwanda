@@ -11,11 +11,12 @@ type Worker = {
   name?: string;
   role?: string;
   photoURL?: string;
+  photo?: string;
   location?: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
+    lat?: number;
+    lng?: number;
+    address?: string;
+  } | string; // ⚠️ support BOTH formats
   service?: string;
   distance?: number;
 };
@@ -29,6 +30,8 @@ export default function TechniciansPage() {
   // GET USER GPS
   //////////////////////////////////////////////////////
   useEffect(() => {
+    if (!navigator.geolocation) return;
+
     navigator.geolocation.getCurrentPosition((pos) => {
       setMyLocation({
         lat: pos.coords.latitude,
@@ -38,11 +41,11 @@ export default function TechniciansPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // LOAD TECHNICIANS (REALTIME)
+  // LOAD TECHNICIANS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(db, "workers"), // ✅ FIXED
+      collection(db, "workers"),
       (snap) => {
         const data: Worker[] = snap.docs
           .map((doc) => ({
@@ -51,20 +54,27 @@ export default function TechniciansPage() {
           }))
           .filter((u) => u.role === "technician")
           .map((u: any) => {
-            if (!myLocation || !u.location) {
-              return { ...u, distance: 999 };
-            }
+            // ⚠️ FIX: handle string OR object location
+            let distance = 999;
 
-            const distance = getDistance(
-              myLocation.lat,
-              myLocation.lng,
-              u.location.lat,
+            if (
+              myLocation &&
+              u.location &&
+              typeof u.location === "object" &&
+              u.location.lat &&
               u.location.lng
-            );
+            ) {
+              distance = getDistance(
+                myLocation.lat,
+                myLocation.lng,
+                u.location.lat,
+                u.location.lng
+              );
+            }
 
             return { ...u, distance };
           })
-          .sort((a: any, b: any) => a.distance - b.distance);
+          .sort((a, b) => (a.distance || 999) - (b.distance || 999));
 
         setWorkers(data);
       }
@@ -76,11 +86,16 @@ export default function TechniciansPage() {
   //////////////////////////////////////////////////////
   // SEARCH
   //////////////////////////////////////////////////////
-  const filtered = workers.filter((u) =>
-    `${u.name || ""} ${u.location?.address || ""} ${u.service || ""}`
+  const filtered = workers.filter((u) => {
+    const locationText =
+      typeof u.location === "string"
+        ? u.location
+        : u.location?.address || "";
+
+    return `${u.name || ""} ${locationText} ${u.service || ""}`
       .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+      .includes(search.toLowerCase());
+  });
 
   //////////////////////////////////////////////////////
   // UI
@@ -108,38 +123,47 @@ export default function TechniciansPage() {
 
       {/* LIST */}
       <div className="space-y-3">
-        {filtered.map((worker) => (
-          <Link
-            key={worker.id}
-            href={`/workers/technicians/${worker.id}`} // ✅ FIXED
-            className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl"
-          >
-            <img
-              src={
-                worker.photoURL ||
-                "/default-avatar.png"
-              }
-              className="w-12 h-12 rounded-full object-cover"
-            />
+        {filtered.map((worker) => {
+          const locationText =
+            typeof worker.location === "string"
+              ? worker.location
+              : worker.location?.address || "No location";
 
-            <div className="flex-1">
-              <p className="font-semibold">
-                {worker.name || "No Name"}
-              </p>
+          return (
+            <Link
+              key={worker.id}
+              href={`/workers/technicians/${worker.id}`} // ✅ CORRECT ROUTE
+              className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl hover:bg-[#2a3942]"
+            >
+              {/* PHOTO */}
+              <img
+                src={
+                  worker.photoURL ||
+                  worker.photo ||
+                  "/default-avatar.png"
+                }
+                className="w-12 h-12 rounded-full object-cover"
+              />
 
-              <p className="text-sm text-gray-400">
-                {worker.location?.address ||
-                  "No location"}
-              </p>
-
-              {worker.distance !== 999 && (
-                <p className="text-green-400 text-xs">
-                  📍 {worker.distance?.toFixed(1)} km away
+              {/* INFO */}
+              <div className="flex-1">
+                <p className="font-semibold">
+                  {worker.name || "No Name"}
                 </p>
-              )}
-            </div>
-          </Link>
-        ))}
+
+                <p className="text-sm text-gray-400">
+                  {locationText}
+                </p>
+
+                {worker.distance !== 999 && (
+                  <p className="text-green-400 text-xs">
+                    📍 {worker.distance?.toFixed(1)} km away
+                  </p>
+                )}
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </main>
   );

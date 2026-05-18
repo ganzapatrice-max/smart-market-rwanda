@@ -21,7 +21,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetEmail, setResetEmail] = useState("");
-
   const [loading, setLoading] = useState(false);
 
   //////////////////////////////////////////////////////
@@ -45,50 +44,81 @@ export default function LoginPage() {
       const user = res.user;
 
       //////////////////////////////////////////////////////
-      // ✅ FIX: USE workers COLLECTION
+      // ✅ ALWAYS USE SAME COLLECTION AS SIGNUP
       //////////////////////////////////////////////////////
-      const snap = await getDoc(
-        doc(db, "workers", user.uid)
-      );
+      const ref = doc(db, "workers", user.uid);
+      const snap = await getDoc(ref);
 
+      //////////////////////////////////////////////////////
+      // 🔥 AUTO FIX: CREATE PROFILE IF MISSING
+      //////////////////////////////////////////////////////
       if (!snap.exists()) {
-        alert("User profile not found");
+        await setDoc(ref, {
+          uid: user.uid,
+          name: user.email?.split("@")[0] || "User",
+          email: user.email,
+          role: "patient",
+
+          phone: "",
+          service: "",
+          location: "",
+          photo: "",
+
+          verified: false,
+          subscriptionActive: false,
+          online: true,
+          booked: false,
+
+          createdAt: new Date(),
+        });
+
+        // reload profile
+        const newSnap = await getDoc(ref);
+        const data = newSnap.data();
+
+        redirectUser(data);
         return;
       }
 
       const data = snap.data();
 
-      // blocked
+      //////////////////////////////////////////////////////
+      // BLOCK CHECK
+      //////////////////////////////////////////////////////
       if (data.blocked === true) {
         alert("Account blocked");
         return;
       }
 
-      //////////////////////////////////////////////////////
-      // ROLE REDIRECT
-      //////////////////////////////////////////////////////
-      if (data.role === "admin") {
-        router.push("/admin");
-        return;
-      }
-
-      if (data.role === "technician") {
-        router.push("/technician");
-        return;
-      }
-
-      if (data.role === "patient") {
-        router.push("/patient");
-        return;
-      }
-
-      router.push("/");
+      redirectUser(data);
 
     } catch (error: any) {
       alert(error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  //////////////////////////////////////////////////////
+  // REDIRECT BY ROLE
+  //////////////////////////////////////////////////////
+  const redirectUser = (data: any) => {
+    if (data.role === "admin") {
+      router.push("/admin");
+      return;
+    }
+
+    if (data.role === "technician") {
+      router.push("/workers/technicians");
+      return;
+    }
+
+    if (data.role === "patient") {
+      router.push("/workers/patients");
+      return;
+    }
+
+    router.push("/");
   };
 
   //////////////////////////////////////////////////////
@@ -139,7 +169,7 @@ export default function LoginPage() {
           className="w-full p-4 rounded-xl text-black"
         />
 
-        {/* LOGIN BUTTON */}
+        {/* LOGIN */}
         <button
           onClick={login}
           disabled={loading}

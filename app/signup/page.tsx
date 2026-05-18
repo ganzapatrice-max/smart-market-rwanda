@@ -26,7 +26,7 @@ export default function SignupPage() {
   const [resetEmail, setResetEmail] = useState("");
 
   //////////////////////////////////////////////////////
-  // SIGNUP
+  // SIGNUP (AUTO CREATE FULL PROFILE)
   //////////////////////////////////////////////////////
   const signup = async () => {
     try {
@@ -46,31 +46,49 @@ export default function SignupPage() {
       const user = res.user;
 
       //////////////////////////////////////////////////////
-      // ✅ CREATE USER IN "workers" (IMPORTANT)
+      // ✅ CREATE FULL PROFILE (PATIENT DEFAULT)
       //////////////////////////////////////////////////////
       await setDoc(doc(db, "workers", user.uid), {
         uid: user.uid,
+
+        // BASIC
         name,
         email,
-        role: "patient", // default
+        role: "patient", // ✅ default role
 
-        // PROFILE
+        //////////////////////////////////////////////////////
+        // PATIENT FIELDS
+        //////////////////////////////////////////////////////
         phone: "",
-        service: "",
         location: "",
-        photo: "",
+        bio: "",
+        photos: [], // problem images
 
-        // SYSTEM FLAGS (🔥 IMPORTANT)
+        //////////////////////////////////////////////////////
+        // TECHNICIAN FIELDS (PRE-CREATED 🔥)
+        //////////////////////////////////////////////////////
+        service: "",
         verified: false,
         subscriptionActive: false,
-        online: true,
-        booked: false,
 
+        //////////////////////////////////////////////////////
+        // SYSTEM
+        //////////////////////////////////////////////////////
+        photo: "",
+        online: true,
+        blocked: false,
+
+        //////////////////////////////////////////////////////
+        // META
+        //////////////////////////////////////////////////////
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       alert("Account created successfully!");
-      router.push("/login");
+
+      // go to profile setup (better UX 🔥)
+      router.push("/profile/edit");
 
     } catch (error: any) {
       alert(error.message);
@@ -85,14 +103,13 @@ export default function SignupPage() {
   const resetPassword = async () => {
     try {
       if (!resetEmail) {
-        alert("Enter your email to reset password");
+        alert("Enter your email");
         return;
       }
 
       await sendPasswordResetEmail(auth, resetEmail);
 
       alert("Password reset email sent 📩");
-
     } catch (error: any) {
       alert(error.message);
     }
@@ -111,12 +128,11 @@ export default function SignupPage() {
         </h1>
 
         <p className="text-center text-gray-400 mt-2 mb-6">
-          Join Smart Market Rwanda
+          Smart Market Rwanda
         </p>
 
         {/* NAME */}
         <input
-          type="text"
           placeholder="Full Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -126,7 +142,7 @@ export default function SignupPage() {
         {/* EMAIL */}
         <input
           type="email"
-          placeholder="Email Address"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full p-4 rounded-2xl bg-white text-black mb-4"
@@ -145,7 +161,7 @@ export default function SignupPage() {
         <button
           onClick={signup}
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 p-4 rounded-2xl font-bold"
+          className="w-full bg-green-600 p-4 rounded-2xl font-bold"
         >
           {loading ? "Creating..." : "CREATE ACCOUNT"}
         </button>
@@ -153,9 +169,9 @@ export default function SignupPage() {
         {/* LOGIN */}
         <button
           onClick={() => router.push("/login")}
-          className="w-full mt-4 bg-blue-600 hover:bg-blue-700 p-4 rounded-2xl font-bold"
+          className="w-full mt-4 bg-blue-600 p-4 rounded-2xl font-bold"
         >
-          🔐 Already Have Account? Login
+          🔐 Login
         </button>
 
         {/* RESET PASSWORD */}
@@ -167,7 +183,7 @@ export default function SignupPage() {
 
           <input
             type="email"
-            placeholder="Enter your email"
+            placeholder="Enter email"
             value={resetEmail}
             onChange={(e) => setResetEmail(e.target.value)}
             className="w-full p-3 rounded-xl bg-white text-black mb-3"
@@ -175,7 +191,7 @@ export default function SignupPage() {
 
           <button
             onClick={resetPassword}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 p-3 rounded-xl"
+            className="w-full bg-yellow-600 p-3 rounded-xl"
           >
             🔁 Reset Password
           </button>

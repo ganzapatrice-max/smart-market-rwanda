@@ -208,6 +208,9 @@ const bookNow = async () => {
           📰 Feed
         </Link>
 
+<Link href="/workers/technician/bookings">
+  📥 Requests
+</Link>
       </div>
 
     </main>

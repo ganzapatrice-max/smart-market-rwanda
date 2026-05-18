@@ -7,6 +7,7 @@ import { auth, db } from "../../lib/firebase";
 
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 
 import {
@@ -20,10 +21,12 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   //////////////////////////////////////////////////////
-  // SIGNUP FUNCTION
+  // SIGNUP
   //////////////////////////////////////////////////////
   const signup = async () => {
     try {
@@ -43,24 +46,28 @@ export default function SignupPage() {
       const user = res.user;
 
       //////////////////////////////////////////////////////
-      // ✅ CREATE FIRESTORE PROFILE (FIXED)
+      // ✅ CREATE USER IN "workers" (IMPORTANT)
       //////////////////////////////////////////////////////
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          uid: user.uid,
-          name: name,
-          email: email,
-          role: "patient",
-          blocked: false,
-          createdAt: Date.now(),
+      await setDoc(doc(db, "workers", user.uid), {
+        uid: user.uid,
+        name,
+        email,
+        role: "patient", // default
 
-          // ✅ IMPORTANT FIXES
-          photo: "",          // no default image saved
-          followers: 0,       // for counts
-          following: 0,       // for counts
-        }
-      );
+        // PROFILE
+        phone: "",
+        service: "",
+        location: "",
+        photo: "",
+
+        // SYSTEM FLAGS (🔥 IMPORTANT)
+        verified: false,
+        subscriptionActive: false,
+        online: true,
+        booked: false,
+
+        createdAt: new Date(),
+      });
 
       alert("Account created successfully!");
       router.push("/login");
@@ -73,6 +80,25 @@ export default function SignupPage() {
   };
 
   //////////////////////////////////////////////////////
+  // RESET PASSWORD
+  //////////////////////////////////////////////////////
+  const resetPassword = async () => {
+    try {
+      if (!resetEmail) {
+        alert("Enter your email to reset password");
+        return;
+      }
+
+      await sendPasswordResetEmail(auth, resetEmail);
+
+      alert("Password reset email sent 📩");
+
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
@@ -80,7 +106,6 @@ export default function SignupPage() {
 
       <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-3xl p-6 shadow-2xl">
 
-        {/* TITLE */}
         <h1 className="text-3xl font-bold text-center">
           📝 Create Account
         </h1>
@@ -95,7 +120,7 @@ export default function SignupPage() {
           placeholder="Full Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white text-black mb-4 outline-none"
+          className="w-full p-4 rounded-2xl bg-white text-black mb-4"
         />
 
         {/* EMAIL */}
@@ -104,7 +129,7 @@ export default function SignupPage() {
           placeholder="Email Address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white text-black mb-4 outline-none"
+          className="w-full p-4 rounded-2xl bg-white text-black mb-4"
         />
 
         {/* PASSWORD */}
@@ -113,14 +138,14 @@ export default function SignupPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white text-black mb-5 outline-none"
+          className="w-full p-4 rounded-2xl bg-white text-black mb-5"
         />
 
-        {/* BUTTON */}
+        {/* SIGNUP */}
         <button
           onClick={signup}
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 p-4 rounded-2xl font-bold transition"
+          className="w-full bg-green-600 hover:bg-green-700 p-4 rounded-2xl font-bold"
         >
           {loading ? "Creating..." : "CREATE ACCOUNT"}
         </button>
@@ -128,10 +153,34 @@ export default function SignupPage() {
         {/* LOGIN */}
         <button
           onClick={() => router.push("/login")}
-          className="w-full mt-4 bg-blue-600 hover:bg-blue-700 p-4 rounded-2xl font-bold transition"
+          className="w-full mt-4 bg-blue-600 hover:bg-blue-700 p-4 rounded-2xl font-bold"
         >
           🔐 Already Have Account? Login
         </button>
+
+        {/* RESET PASSWORD */}
+        <div className="mt-6 border-t border-gray-700 pt-4">
+
+          <p className="text-sm text-gray-400 mb-2">
+            Forgot password?
+          </p>
+
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            className="w-full p-3 rounded-xl bg-white text-black mb-3"
+          />
+
+          <button
+            onClick={resetPassword}
+            className="w-full bg-yellow-600 hover:bg-yellow-700 p-3 rounded-xl"
+          >
+            🔁 Reset Password
+          </button>
+
+        </div>
 
       </div>
 

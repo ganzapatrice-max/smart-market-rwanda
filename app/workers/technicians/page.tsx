@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "../../../lib/firebase";
-
-import {
-  collection,
-  onSnapshot,
-} from "firebase/firestore";
-
+import { collection, onSnapshot } from "firebase/firestore";
 import { getDistance } from "@/lib/location";
 
 type Worker = {
@@ -22,6 +17,7 @@ type Worker = {
     address: string;
   };
   service?: string;
+  distance?: number;
 };
 
 export default function TechniciansPage() {
@@ -46,18 +42,15 @@ export default function TechniciansPage() {
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(db, "users"),
+      collection(db, "workers"), // ✅ FIXED
       (snap) => {
         const data: Worker[] = snap.docs
           .map((doc) => ({
             id: doc.id,
             ...(doc.data() as any),
           }))
-          .filter(
-            (u) =>
-              u.role === "technician"
-          )
-          .map((u) => {
+          .filter((u) => u.role === "technician")
+          .map((u: any) => {
             if (!myLocation || !u.location) {
               return { ...u, distance: 999 };
             }
@@ -71,10 +64,7 @@ export default function TechniciansPage() {
 
             return { ...u, distance };
           })
-          .sort(
-            (a: any, b: any) =>
-              a.distance - b.distance
-          );
+          .sort((a: any, b: any) => a.distance - b.distance);
 
         setWorkers(data);
       }
@@ -86,7 +76,7 @@ export default function TechniciansPage() {
   //////////////////////////////////////////////////////
   // SEARCH
   //////////////////////////////////////////////////////
-  const filtered = workers.filter((u: any) =>
+  const filtered = workers.filter((u) =>
     `${u.name || ""} ${u.location?.address || ""} ${u.service || ""}`
       .toLowerCase()
       .includes(search.toLowerCase())
@@ -104,22 +94,26 @@ export default function TechniciansPage() {
       {/* SEARCH */}
       <input
         value={search}
-        onChange={(e) =>
-          setSearch(e.target.value)
-        }
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name, service, location..."
         className="w-full bg-[#202c33] p-3 rounded-xl mb-5"
       />
 
-      {/* LIST (WHATSAPP STYLE) */}
+      {/* EMPTY */}
+      {filtered.length === 0 && (
+        <p className="text-gray-400 text-center mt-10">
+          No technicians found
+        </p>
+      )}
+
+      {/* LIST */}
       <div className="space-y-3">
-        {filtered.map((worker: any) => (
+        {filtered.map((worker) => (
           <Link
             key={worker.id}
-            href={`/technician/${worker.id}`}
+            href={`/workers/technicians/${worker.id}`} // ✅ FIXED
             className="flex items-center gap-3 bg-[#202c33] p-3 rounded-xl"
           >
-            {/* PHOTO */}
             <img
               src={
                 worker.photoURL ||
@@ -128,7 +122,6 @@ export default function TechniciansPage() {
               className="w-12 h-12 rounded-full object-cover"
             />
 
-            {/* NAME + DISTANCE */}
             <div className="flex-1">
               <p className="font-semibold">
                 {worker.name || "No Name"}
@@ -141,7 +134,7 @@ export default function TechniciansPage() {
 
               {worker.distance !== 999 && (
                 <p className="text-green-400 text-xs">
-                  📍 {worker.distance.toFixed(1)} km away
+                  📍 {worker.distance?.toFixed(1)} km away
                 </p>
               )}
             </div>

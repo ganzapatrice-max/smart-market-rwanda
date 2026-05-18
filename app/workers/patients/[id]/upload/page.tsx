@@ -185,7 +185,7 @@ export default function UploadPage() {
             placeholder="Describe the problem..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full mt-2 p-3 rounded-xl text-black"
+            className="w-full mt-2 p-3 rounded-xl text-white"
           />
 
         </div>

@@ -8,6 +8,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function UploadPage() {
   const { id } = useParams();
@@ -33,17 +34,14 @@ export default function UploadPage() {
   //////////////////////////////////////////////////////
   // HANDLE FILE
   //////////////////////////////////////////////////////
-  const handleFile = (e: any) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-
-    setFile(selected);
+  const handleFile = (file: File) => {
+    setFile(file);
 
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
     };
-    reader.readAsDataURL(selected);
+    reader.readAsDataURL(file);
   };
 
   //////////////////////////////////////////////////////
@@ -69,17 +67,16 @@ export default function UploadPage() {
   };
 
   //////////////////////////////////////////////////////
-  // SAVE PHOTO + DESCRIPTION
+  // SAVE
   //////////////////////////////////////////////////////
   const savePhoto = async () => {
     try {
       if (!file) return alert("Select photo");
-      if (!description) return alert("Add description");
+      if (!description) return alert("Write description");
 
       setLoading(true);
 
       const url = await uploadToCloudinary();
-      if (!url) return alert("Upload failed");
 
       const updated = [
         ...(user.photos || []),
@@ -105,7 +102,7 @@ export default function UploadPage() {
   };
 
   //////////////////////////////////////////////////////
-  // DELETE PHOTO
+  // DELETE
   //////////////////////////////////////////////////////
   const deletePhoto = async (index: number) => {
     const updated = user.photos.filter((_: any, i: number) => i !== index);
@@ -140,53 +137,67 @@ export default function UploadPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-black text-white p-5">
+    <main className="min-h-screen bg-black text-white pb-24 p-5">
 
-      <h1 className="text-xl font-bold mb-6 text-center">
-        📸 Manage Problem Photos
+      <h1 className="text-xl font-bold text-center mb-6">
+        📸 Upload Problem Photo
       </h1>
 
-      {/* UPLOAD SECTION */}
-      <div className="flex flex-col items-center">
-
-        {preview && (
-          <img
-            src={preview}
-            className="w-64 h-64 object-cover rounded-xl mb-3"
-          />
-        )}
-
-        <input
-          type="text"
-          placeholder="Describe the problem..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full max-w-md p-3 rounded-xl text-black mb-3"
+      {/* PREVIEW */}
+      {preview && (
+        <img
+          src={preview}
+          className="w-full max-w-sm mx-auto h-64 object-cover rounded-xl mb-4"
         />
+      )}
 
-        <label className="bg-green-600 px-6 py-3 rounded-xl cursor-pointer mb-3">
-          📷 Take / Upload
+      {/* DESCRIPTION */}
+      <input
+        type="text"
+        placeholder="Describe the problem..."
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="w-full p-3 rounded-xl text-black mb-4"
+      />
+
+      {/* BUTTONS */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+
+        {/* TAKE PHOTO */}
+        <label className="bg-green-600 p-3 rounded-xl text-center cursor-pointer">
+          📷 Take
           <input
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={handleFile}
+            onChange={(e) => e.target.files && handleFile(e.target.files[0])}
             hidden
           />
         </label>
 
+        {/* CHOOSE PHOTO */}
+        <label className="bg-purple-600 p-3 rounded-xl text-center cursor-pointer">
+          🖼 Choose
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+            hidden
+          />
+        </label>
+
+        {/* SAVE */}
         <button
           onClick={savePhoto}
           disabled={loading}
-          className="bg-blue-600 px-6 py-3 rounded-xl"
+          className="bg-blue-600 p-3 rounded-xl"
         >
-          {loading ? "Uploading..." : "Save"}
+          {loading ? "..." : "💾 Save"}
         </button>
       </div>
 
       {/* EXISTING PHOTOS */}
-      <div className="mt-8 grid grid-cols-2 gap-4">
-
+      <div className="grid grid-cols-2 gap-4">
         {user.photos?.map((p: any, i: number) => (
           <div key={i} className="bg-white/10 p-2 rounded-xl">
 
@@ -215,16 +226,17 @@ export default function UploadPage() {
 
           </div>
         ))}
-
       </div>
 
-      {/* BACK */}
-      <button
-        onClick={() => router.back()}
-        className="mt-6 text-gray-400"
-      >
-        ← Back
-      </button>
+      {/* BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] flex justify-around py-4 border-t border-white/10">
+
+        <Link href="/" className="text-center">🏠<br/>Home</Link>
+        <Link href="/post" className="text-center">➕<br/>Post</Link>
+        <Link href="/feed" className="text-center">📰<br/>Feed</Link>
+        <Link href="/workers/technicians" className="text-center">🛠<br/>Service</Link>
+
+      </div>
 
     </main>
   );

@@ -13,6 +13,7 @@ import {
 import {
   doc,
   getDoc,
+  setDoc, // ✅ ADD THIS
 } from "firebase/firestore";
 
 export default function LoginPage() {

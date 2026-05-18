@@ -6,6 +6,9 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { collection, addDoc } from "firebase/firestore";
+import { auth } from "../../../../lib/firebase";
+
 export default function TechnicianProfile() {
   const { id } = useParams();
   const router = useRouter();
@@ -38,13 +41,26 @@ export default function TechnicianProfile() {
     setPaid(true);
   };
 
-  const bookNow = async () => {
-    await setDoc(doc(db, "bookings", id as string), {
-      booked: true,
-      createdAt: new Date(),
-    });
-    setBooked(true);
-  };
+const bookNow = async () => {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    alert("Login first");
+    return;
+  }
+
+  await addDoc(collection(db, "bookings"), {
+    clientId: currentUser.uid,
+    technicianId: id,
+    clientName: currentUser.email,
+    technicianName: user.name,
+    status: "pending",
+    createdAt: new Date(),
+  });
+
+  setBooked(true);
+  alert("Booking sent ✅");
+};
 
   if (!user) return <p className="text-white p-6">Loading...</p>;
 

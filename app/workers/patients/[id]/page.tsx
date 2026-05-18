@@ -2,25 +2,64 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { setDoc } from "firebase/firestore";
 
 export default function PatientProfile() {
   const { id } = useParams();
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
+  const [paid, setPaid] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
 
+  //////////////////////////////////////////////////////
+  // LOAD PATIENT
+  //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
       const snap = await getDoc(doc(db, "workers", id as string));
-      if (snap.exists()) {
-        setUser(snap.data());
-      }
+      if (snap.exists()) setUser(snap.data());
     };
 
     load();
+  }, [id]);
+
+  //////////////////////////////////////////////////////
+  // CHECK PAYMENT
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const payRef = doc(db, "payments", id as string);
+
+    getDoc(payRef).then((snap) => {
+      if (snap.exists()) setPaid(true);
+    });
+  }, [id]);
+
+  //////////////////////////////////////////////////////
+  // LOAD BOOKINGS (TECHNICIANS WHO BOOKED THIS PATIENT)
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const q = query(
+      collection(db, "bookings"),
+      where("patientId", "==", id)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((doc) => doc.data());
+      setBookings(data);
+    });
+
+    return () => unsub();
   }, [id]);
 
   if (!user) {
@@ -28,38 +67,123 @@ export default function PatientProfile() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0b1f3a] text-white p-5">
+    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white pb-20">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center p-4">
         <button onClick={() => router.back()}>← Back</button>
-
         <h1 className="font-bold">Patient Profile</h1>
-
         <Link href="/">🏠 Home</Link>
       </div>
 
       {/* PROFILE */}
-      <div className="text-center">
+      <div className="text-center mt-4 px-4">
         <img
           src={user.photo || "/default-avatar.png"}
-          className="w-24 h-24 rounded-full mx-auto"
+          className="w-28 h-28 rounded-full mx-auto object-cover border-4 border-white"
         />
 
         <h2 className="text-xl font-bold mt-3">{user.name}</h2>
-        <p>{user.email}</p>
+        <p className="text-gray-300">{user.email}</p>
       </div>
 
       {/* INFO */}
-      <div className="mt-6 space-y-3">
+      <div className="mx-4 mt-6 bg-white/10 rounded-xl p-4 space-y-3">
         <p>📍 {user.location || "No location"}</p>
+        <p>🛠 {user.service || "No service"}</p>
         <p>📞 {user.phone || "No phone"}</p>
         <p>📝 {user.bio || "No description"}</p>
 
         <p>
-          Status:{" "}
           {user.online ? "🟢 Online" : "⚫ Offline"}
         </p>
+      </div>
+
+      {/* PHOTOS (PROBLEM IMAGES) */}
+      {user.photos?.length > 0 && (
+        <div className="mx-4 mt-4">
+          <p className="mb-2 font-semibold">📸 Problem Photos</p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {user.photos.map((img: string, i: number) => (
+              <img
+                key={i}
+                src={img}
+                className="w-full h-24 object-cover rounded-lg"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* BOOKINGS LIST */}
+      <div className="mx-4 mt-6">
+        <p className="font-semibold mb-2">
+          👷 Technicians who booked
+        </p>
+
+        {bookings.length === 0 && (
+          <p className="text-gray-400">No bookings yet</p>
+        )}
+
+        {bookings.map((b, i) => (
+          <Link
+            key={i}
+            href={`/workers/technicians/${b.technicianId}`}
+            className="block bg-[#202c33] p-3 rounded-xl mb-2"
+          >
+            View Technician Profile →
+          </Link>
+        ))}
+      </div>
+
+      {/* ACTIONS */}
+      <div className="mx-4 mt-6 space-y-3">
+
+        {/* PAY + CHAT */}
+        {!paid ? (
+          <button
+            onClick={async () => {
+              await setDoc(doc(db, "payments", id as string), {
+                paid: true,
+                createdAt: new Date(),
+              });
+              setPaid(true);
+            }}
+            className="w-full bg-green-500 p-4 rounded-xl"
+          >
+            💬 Pay 2,000 FRW to Chat
+          </button>
+        ) : (
+          <Link
+            href={`/chat/${id}`}
+            className="block text-center bg-green-600 p-4 rounded-xl"
+          >
+            💬 Chat
+          </Link>
+        )}
+
+        {/* GPS */}
+        <button
+          onClick={() => {
+            window.open(
+              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                user.location
+              )}`
+            );
+          }}
+          className="w-full bg-blue-600 p-4 rounded-xl"
+        >
+          📍 Open GPS
+        </button>
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around text-white">
+        <button onClick={() => router.back()}>⬅ Back</button>
+        <Link href="/">🏠 Home</Link>
+        <Link href="/post">➕ Post</Link>
+        <Link href="/feed">📰 Feeds</Link>
       </div>
 
     </main>

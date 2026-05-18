@@ -9,10 +9,10 @@ import {
   query,
   where,
   onSnapshot,
+  setDoc,
 } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { setDoc } from "firebase/firestore";
 
 export default function PatientProfile() {
   const { id } = useParams();
@@ -23,30 +23,27 @@ export default function PatientProfile() {
   const [bookings, setBookings] = useState<any[]>([]);
 
   //////////////////////////////////////////////////////
-  // LOAD PATIENT
+  // LOAD USER
   //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
       const snap = await getDoc(doc(db, "workers", id as string));
       if (snap.exists()) setUser(snap.data());
     };
-
     load();
   }, [id]);
 
   //////////////////////////////////////////////////////
-  // CHECK PAYMENT
+  // PAYMENT
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const payRef = doc(db, "payments", id as string);
-
-    getDoc(payRef).then((snap) => {
+    getDoc(doc(db, "payments", id as string)).then((snap) => {
       if (snap.exists()) setPaid(true);
     });
   }, [id]);
 
   //////////////////////////////////////////////////////
-  // LOAD BOOKINGS (TECHNICIANS WHO BOOKED THIS PATIENT)
+  // BOOKINGS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(
@@ -62,9 +59,25 @@ export default function PatientProfile() {
     return () => unsub();
   }, [id]);
 
-  if (!user) {
-    return <p className="text-white p-6">Loading...</p>;
-  }
+  //////////////////////////////////////////////////////
+  // UPLOAD PHOTO (simple URL input for now)
+  //////////////////////////////////////////////////////
+  const uploadPhoto = async () => {
+    const url = prompt("Paste image URL");
+    if (!url) return;
+
+    const updated = [...(user.photos || []), url];
+
+    await setDoc(
+      doc(db, "workers", id as string),
+      { photos: updated },
+      { merge: true }
+    );
+
+    setUser({ ...user, photos: updated });
+  };
+
+  if (!user) return <p className="text-white p-6">Loading...</p>;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white pb-20">
@@ -73,14 +86,21 @@ export default function PatientProfile() {
       <div className="flex justify-between items-center p-4">
         <button onClick={() => router.back()}>← Back</button>
         <h1 className="font-bold">Patient Profile</h1>
-        <Link href="/">🏠 Home</Link>
+
+        {/* ✅ PHOTOS BUTTON */}
+        <Link
+          href={`/workers/patients/${id}/photos`}
+          className="text-sm bg-gray-700 px-3 py-1 rounded"
+        >
+          📸 Photos
+        </Link>
       </div>
 
       {/* PROFILE */}
       <div className="text-center mt-4 px-4">
         <img
           src={user.photo || "/default-avatar.png"}
-          className="w-28 h-28 rounded-full mx-auto object-cover border-4 border-white"
+          className="w-28 h-28 rounded-full mx-auto border-4 border-white"
         />
 
         <h2 className="text-xl font-bold mt-3">{user.name}</h2>
@@ -93,54 +113,45 @@ export default function PatientProfile() {
         <p>🛠 {user.service || "No service"}</p>
         <p>📞 {user.phone || "No phone"}</p>
         <p>📝 {user.bio || "No description"}</p>
-
-        <p>
-          {user.online ? "🟢 Online" : "⚫ Offline"}
-        </p>
+        <p>{user.online ? "🟢 Online" : "⚫ Offline"}</p>
       </div>
 
-      {/* PHOTOS (PROBLEM IMAGES) */}
-      {user.photos?.length > 0 && (
-        <div className="mx-4 mt-4">
-          <p className="mb-2 font-semibold">📸 Problem Photos</p>
+      {/* ✅ UPLOAD BUTTON */}
+      <div className="mx-4 mt-4">
+        <button
+          onClick={uploadPhoto}
+          className="w-full bg-purple-600 p-3 rounded-xl"
+        >
+          ➕ Upload Problem Photo
+        </button>
+      </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {user.photos.map((img: string, i: number) => (
-              <img
-                key={i}
-                src={img}
-                className="w-full h-24 object-cover rounded-lg"
-              />
-            ))}
-          </div>
+      {/* PREVIEW PHOTOS */}
+      {user.photos?.length > 0 && (
+        <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
+          {user.photos.map((img: string, i: number) => (
+            <img
+              key={i}
+              src={img}
+              className="w-full h-24 object-cover rounded-lg"
+            />
+          ))}
         </div>
       )}
 
-      {/* BOOKINGS LIST */}
+      {/* ✅ BOOKINGS BUTTON */}
       <div className="mx-4 mt-6">
-        <p className="font-semibold mb-2">
-          👷 Technicians who booked
-        </p>
-
-        {bookings.length === 0 && (
-          <p className="text-gray-400">No bookings yet</p>
-        )}
-
-        {bookings.map((b, i) => (
-          <Link
-            key={i}
-            href={`/workers/technicians/${b.technicianId}`}
-            className="block bg-[#202c33] p-3 rounded-xl mb-2"
-          >
-            View Technician Profile →
-          </Link>
-        ))}
+        <Link
+          href={`/workers/patients/${id}/bookings`}
+          className="block w-full bg-orange-500 text-center p-3 rounded-xl"
+        >
+          📅 View Booked Technicians ({bookings.length})
+        </Link>
       </div>
 
       {/* ACTIONS */}
       <div className="mx-4 mt-6 space-y-3">
 
-        {/* PAY + CHAT */}
         {!paid ? (
           <button
             onClick={async () => {
@@ -163,7 +174,6 @@ export default function PatientProfile() {
           </Link>
         )}
 
-        {/* GPS */}
         <button
           onClick={() => {
             window.open(
@@ -179,7 +189,7 @@ export default function PatientProfile() {
       </div>
 
       {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around text-white">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around">
         <button onClick={() => router.back()}>⬅ Back</button>
         <Link href="/">🏠 Home</Link>
         <Link href="/post">➕ Post</Link>

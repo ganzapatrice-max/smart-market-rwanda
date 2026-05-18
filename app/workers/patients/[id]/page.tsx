@@ -60,7 +60,7 @@ export default function PatientProfile() {
   }, [id]);
 
   //////////////////////////////////////////////////////
-  // UPLOAD PHOTO (simple URL input for now)
+  // UPLOAD PHOTO
   //////////////////////////////////////////////////////
   const uploadPhoto = async () => {
     const url = prompt("Paste image URL");
@@ -80,17 +80,19 @@ export default function PatientProfile() {
   if (!user) return <p className="text-white p-6">Loading...</p>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white pb-20">
+    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white pb-28">
 
       {/* HEADER */}
       <div className="flex justify-between items-center p-4">
-        <button onClick={() => router.back()}>← Back</button>
-        <h1 className="font-bold">Patient Profile</h1>
+        <button onClick={() => router.back()} className="text-lg">
+          ← Back
+        </button>
 
-        {/* ✅ PHOTOS BUTTON */}
+        <h1 className="font-bold text-lg">Patient Profile</h1>
+
         <Link
           href={`/workers/patients/${id}/photos`}
-          className="text-sm bg-gray-700 px-3 py-1 rounded"
+          className="bg-white/10 px-4 py-2 rounded-xl"
         >
           📸 Photos
         </Link>
@@ -100,58 +102,49 @@ export default function PatientProfile() {
       <div className="text-center mt-4 px-4">
         <img
           src={user.photo || "/default-avatar.png"}
-          className="w-28 h-28 rounded-full mx-auto border-4 border-white"
+          className="w-32 h-32 rounded-full mx-auto border-4 border-white object-cover"
         />
 
-        <h2 className="text-xl font-bold mt-3">{user.name}</h2>
+        <h2 className="text-2xl font-bold mt-4 uppercase">
+          {user.name}
+        </h2>
+
         <p className="text-gray-300">{user.email}</p>
       </div>
 
-      {/* INFO */}
-      <div className="mx-4 mt-6 bg-white/10 rounded-xl p-4 space-y-3">
-        <p>📍 {user.location || "No location"}</p>
-        <p>🛠 {user.service || "No service"}</p>
-        <p>📞 {user.phone || "No phone"}</p>
-        <p>📝 {user.bio || "No description"}</p>
-        <p>{user.online ? "🟢 Online" : "⚫ Offline"}</p>
+      {/* INFO CARD */}
+      <div className="mx-4 mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-5 space-y-4">
+
+        <div>📍 <b>{user.location}</b></div>
+        <div>🛠 <b>{user.service}</b></div>
+        <div>📞 <b>{user.phone}</b></div>
+        <div>📝 <b>{user.bio}</b></div>
+
+        <div className="flex items-center gap-2">
+          <span className={`w-3 h-3 rounded-full ${user.online ? "bg-green-500" : "bg-gray-500"}`}></span>
+          <span>{user.online ? "Online" : "Offline"}</span>
+        </div>
       </div>
 
-      {/* ✅ UPLOAD BUTTON */}
-      <div className="mx-4 mt-4">
+      {/* 🔥 MIDDLE BUTTONS (2x2 GRID) */}
+      <div className="mx-4 mt-6 grid grid-cols-2 gap-4">
+
+        {/* LEFT COLUMN */}
         <button
           onClick={uploadPhoto}
-          className="w-full bg-purple-600 p-3 rounded-xl"
+          className="bg-purple-600 p-4 rounded-xl font-semibold"
         >
-          ➕ Upload Problem Photo
+          📷 Upload Photo
         </button>
-      </div>
 
-      {/* PREVIEW PHOTOS */}
-      {user.photos?.length > 0 && (
-        <div className="mx-4 mt-4 grid grid-cols-3 gap-2">
-          {user.photos.map((img: string, i: number) => (
-            <img
-              key={i}
-              src={img}
-              className="w-full h-24 object-cover rounded-lg"
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ✅ BOOKINGS BUTTON */}
-      <div className="mx-4 mt-6">
         <Link
           href={`/workers/patients/${id}/bookings`}
-          className="block w-full bg-orange-500 text-center p-3 rounded-xl"
+          className="bg-orange-500 p-4 rounded-xl text-center font-semibold"
         >
-          📅 View Booked Technicians ({bookings.length})
+          📅 Bookings ({bookings.length})
         </Link>
-      </div>
 
-      {/* ACTIONS */}
-      <div className="mx-4 mt-6 space-y-3">
-
+        {/* RIGHT COLUMN */}
         {!paid ? (
           <button
             onClick={async () => {
@@ -161,14 +154,14 @@ export default function PatientProfile() {
               });
               setPaid(true);
             }}
-            className="w-full bg-green-500 p-4 rounded-xl"
+            className="bg-green-500 p-4 rounded-xl font-semibold"
           >
-            💬 Pay 2,000 FRW to Chat
+            💬 Pay Chat
           </button>
         ) : (
           <Link
             href={`/chat/${id}`}
-            className="block text-center bg-green-600 p-4 rounded-xl"
+            className="bg-green-600 p-4 rounded-xl text-center font-semibold"
           >
             💬 Chat
           </Link>
@@ -182,18 +175,54 @@ export default function PatientProfile() {
               )}`
             );
           }}
-          className="w-full bg-blue-600 p-4 rounded-xl"
+          className="bg-blue-600 p-4 rounded-xl font-semibold"
         >
-          📍 Open GPS
+          📍 GPS
         </button>
       </div>
 
-      {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around">
-        <button onClick={() => router.back()}>⬅ Back</button>
-        <Link href="/">🏠 Home</Link>
-        <Link href="/post">➕ Post</Link>
-        <Link href="/feed">📰 Feeds</Link>
+      {/* PHOTOS PREVIEW */}
+      {user.photos?.length > 0 && (
+        <div className="mx-4 mt-6 grid grid-cols-3 gap-2">
+          {user.photos.map((img: string, i: number) => (
+            <img
+              key={i}
+              src={img}
+              className="w-full h-24 object-cover rounded-lg"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* 🔥 BIG BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] border-t border-white/10">
+
+        <div className="flex justify-around items-center py-5 text-sm">
+
+          <button
+            onClick={() => router.back()}
+            className="flex flex-col items-center gap-1"
+          >
+            ⬅
+            <span>Back</span>
+          </button>
+
+          <Link href="/" className="flex flex-col items-center gap-1 text-blue-400">
+            🏠
+            <span>Home</span>
+          </Link>
+
+          <Link href="/post" className="flex flex-col items-center gap-1">
+            ➕
+            <span>Post</span>
+          </Link>
+
+          <Link href="/feed" className="flex flex-col items-center gap-1">
+            📰
+            <span>Feeds</span>
+          </Link>
+
+        </div>
       </div>
 
     </main>

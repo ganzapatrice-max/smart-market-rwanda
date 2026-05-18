@@ -49,26 +49,24 @@ export default function TechnicianProfile() {
   if (!user) return <p className="text-white p-6">Loading...</p>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white">
+    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white pb-20">
 
       {/* HEADER */}
       <div className="flex items-center justify-between p-4">
         <button onClick={() => router.back()} className="text-white text-xl">
-          ←
+          ← back
         </button>
 
         <h1 className="font-semibold text-lg">Smart Market</h1>
 
-        <div className="flex gap-3 text-xl">
-          <span>💬</span>
-          <span>🔔</span>
-          <span>☰</span>
-        </div>
+        {/* ✅ FIXED HOME */}
+        <Link href="/" className="text-white text-sm">
+          🏠 Home
+        </Link>
       </div>
 
       {/* PROFILE */}
       <div className="flex flex-col items-center mt-6 px-4">
-
         <img
           src={user.photo || "/default-avatar.png"}
           className="w-28 h-28 rounded-full border-4 border-white object-cover"
@@ -82,7 +80,7 @@ export default function TechnicianProfile() {
         <p className="text-gray-300 text-sm">{user.email}</p>
       </div>
 
-      {/* INFO CARD */}
+      {/* INFO */}
       <div className="mx-4 mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-5 space-y-4">
 
         <div className="flex items-center gap-3">
@@ -110,7 +108,7 @@ export default function TechnicianProfile() {
         </div>
       </div>
 
-      {/* STATUS BAR */}
+      {/* STATUS */}
       <div className="mx-4 mt-4 bg-white/10 rounded-xl p-4 flex justify-between items-center">
 
         <div className="flex items-center gap-2">
@@ -120,14 +118,18 @@ export default function TechnicianProfile() {
           </span>
         </div>
 
+        {/* ✅ FIXED BOOKED CLICK */}
         {booked && (
-          <div className="flex items-center gap-2 text-orange-400">
-            📅 <span>Booked</span>
-          </div>
+          <Link
+            href={`/workers/bookings/${id}`}
+            className="flex items-center gap-2 text-orange-400"
+          >
+            📅 View Booking
+          </Link>
         )}
       </div>
 
-      {/* ACTION BUTTONS */}
+      {/* ACTIONS */}
       <div className="px-4 mt-6 space-y-3">
 
         {!paid ? (
@@ -171,12 +173,25 @@ export default function TechnicianProfile() {
         </button>
       </div>
 
-      {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around text-sm text-gray-300">
-        <span>🏠 Home</span>
-        <span>📅 Bookings</span>
-        <span>💬 Messages</span>
-        <span>👤 Profile</span>
+      {/* ✅ FIXED BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around text-sm">
+
+        <Link href="/" className="text-white text-center">
+          🏠 Home
+        </Link>
+
+        <Link href="/workers/bookings" className="text-white text-center">
+          📅 Bookings
+        </Link>
+
+        <Link href="/post" className="text-white text-center">
+          ➕ Post
+        </Link>
+
+        <Link href="/feed" className="text-white text-center">
+          📰 Feed
+        </Link>
+
       </div>
 
     </main>

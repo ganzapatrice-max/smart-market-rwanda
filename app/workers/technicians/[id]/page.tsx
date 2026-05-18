@@ -19,11 +19,9 @@ export default function TechnicianProfile() {
       const snap = await getDoc(doc(db, "workers", id as string));
       if (snap.exists()) setUser(snap.data());
 
-      // payment check
       const paySnap = await getDoc(doc(db, "payments", id as string));
       if (paySnap.exists()) setPaid(true);
 
-      // booking check
       const bookSnap = await getDoc(doc(db, "bookings", id as string));
       if (bookSnap.exists()) setBooked(true);
     };
@@ -31,147 +29,156 @@ export default function TechnicianProfile() {
     load();
   }, [id]);
 
-  //////////////////////////////////////////////////////
-  // PAY
-  //////////////////////////////////////////////////////
   const payForChat = async () => {
     await setDoc(doc(db, "payments", id as string), {
       paid: true,
       amount: 2000,
       createdAt: new Date(),
     });
-
     setPaid(true);
   };
 
-  //////////////////////////////////////////////////////
-  // BOOK
-  //////////////////////////////////////////////////////
   const bookNow = async () => {
     await setDoc(doc(db, "bookings", id as string), {
       booked: true,
       createdAt: new Date(),
     });
-
     setBooked(true);
   };
 
   if (!user) return <p className="text-white p-6">Loading...</p>;
 
   return (
-    <main className="min-h-screen bg-[#111b21] text-white p-6">
+    <main className="min-h-screen bg-gradient-to-b from-[#0b1f3a] to-[#071226] text-white">
 
-      {/* TOP NAV */}
-      <div className="flex justify-between mb-4">
-        <button onClick={() => router.back()} className="bg-gray-700 px-3 py-2 rounded">
-          ⬅ Back
+      {/* HEADER */}
+      <div className="flex items-center justify-between p-4">
+        <button onClick={() => router.back()} className="text-white text-xl">
+          ←
         </button>
 
-        <Link href="/" className="bg-blue-600 px-3 py-2 rounded">
-          🏠 Home
-        </Link>
+        <h1 className="font-semibold text-lg">Smart Market</h1>
+
+        <div className="flex gap-3 text-xl">
+          <span>💬</span>
+          <span>🔔</span>
+          <span>☰</span>
+        </div>
       </div>
 
-      {/* PROFILE CARD */}
-      <div className="bg-[#202c33] p-6 rounded-xl space-y-4">
+      {/* PROFILE */}
+      <div className="flex flex-col items-center mt-6 px-4">
 
-        {/* PHOTO */}
         <img
           src={user.photo || "/default-avatar.png"}
-          className="w-24 h-24 rounded-full mx-auto object-cover"
+          className="w-28 h-28 rounded-full border-4 border-white object-cover"
         />
 
-        {/* NAME */}
-        <h1 className="text-2xl font-bold text-center">
-          {user.name || "No Name"}
-        </h1>
+        <h2 className="text-2xl font-bold mt-4 flex items-center gap-2">
+          {user.name}
+          {user.verified && <span className="text-blue-400">✔</span>}
+        </h2>
 
-        {/* EMAIL */}
-        <p className="text-center text-gray-400">
-          {user.email}
-        </p>
+        <p className="text-gray-300 text-sm">{user.email}</p>
+      </div>
 
-        {/* INFO */}
-        <p><b>📍 Location:</b> {user.location}</p>
-        <p><b>🛠 Service:</b> {user.service}</p>
-        <p><b>📞 Phone:</b> {user.phone}</p>
+      {/* INFO CARD */}
+      <div className="mx-4 mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-5 space-y-4">
 
-        {/* BADGES */}
-        <div className="flex flex-wrap gap-2 justify-center">
-
-          {user.verified && (
-            <span className="bg-blue-600 px-2 py-1 rounded text-xs">
-              ✔ Verified
-            </span>
-          )}
-
-          {user.subscriptionActive && (
-            <span className="bg-yellow-500 text-black px-2 py-1 rounded text-xs">
-              👑 Subscribed
-            </span>
-          )}
-
-          {user.online ? (
-            <span className="bg-green-600 px-2 py-1 rounded text-xs">
-              🟢 Online
-            </span>
-          ) : (
-            <span className="bg-gray-600 px-2 py-1 rounded text-xs">
-              ⚫ Offline
-            </span>
-          )}
-
-          {booked && (
-            <span className="bg-orange-600 px-2 py-1 rounded text-xs">
-              🏠 Booked
-            </span>
-          )}
+        <div className="flex items-center gap-3">
+          <span>📍</span>
+          <div>
+            <p className="text-gray-300 text-sm">Location</p>
+            <p className="font-semibold">{user.location}</p>
+          </div>
         </div>
 
-        {/* PAYMENT */}
+        <div className="flex items-center gap-3">
+          <span>🛠</span>
+          <div>
+            <p className="text-gray-300 text-sm">Service</p>
+            <p className="font-semibold">{user.service}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span>📞</span>
+          <div>
+            <p className="text-gray-300 text-sm">Phone</p>
+            <p className="font-semibold">{user.phone}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* STATUS BAR */}
+      <div className="mx-4 mt-4 bg-white/10 rounded-xl p-4 flex justify-between items-center">
+
+        <div className="flex items-center gap-2">
+          <span className={`w-3 h-3 rounded-full ${user.online ? "bg-green-500" : "bg-gray-500"}`}></span>
+          <span className="text-sm">
+            {user.online ? "Online" : "Offline"}
+          </span>
+        </div>
+
+        {booked && (
+          <div className="flex items-center gap-2 text-orange-400">
+            📅 <span>Booked</span>
+          </div>
+        )}
+      </div>
+
+      {/* ACTION BUTTONS */}
+      <div className="px-4 mt-6 space-y-3">
+
         {!paid ? (
           <button
             onClick={payForChat}
-            className="bg-red-600 p-3 rounded-xl w-full"
+            className="w-full bg-green-500 hover:bg-green-600 p-4 rounded-xl font-semibold"
           >
-            🔒 Pay 2,000 FRW to Chat
+            💬 Pay 2,000 FRW to Chat
           </button>
         ) : (
           <Link
             href={`/chat/${id}`}
-            className="bg-green-600 p-3 rounded-xl text-center block"
+            className="block w-full text-center bg-green-600 p-4 rounded-xl font-semibold"
           >
             💬 Chat with {user.name}
           </Link>
         )}
 
-        {/* BOOK */}
         {!booked ? (
           <button
             onClick={bookNow}
-            className="bg-orange-600 p-3 rounded-xl w-full"
+            className="w-full bg-orange-500 hover:bg-orange-600 p-4 rounded-xl font-semibold"
           >
-            🏠 Book Home Visit
+            📅 Book Now
           </button>
         ) : (
-          <button className="bg-gray-600 p-3 rounded-xl w-full">
+          <button className="w-full bg-gray-600 p-4 rounded-xl font-semibold">
             ✔ Already Booked
           </button>
         )}
 
-        {/* GPS */}
         <button
           onClick={() => {
             window.open(
               `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(user.location)}`
             );
           }}
-          className="bg-blue-700 p-3 rounded-xl w-full"
+          className="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-semibold"
         >
           📍 Open GPS Location
         </button>
-
       </div>
+
+      {/* BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0b1f3a] p-3 flex justify-around text-sm text-gray-300">
+        <span>🏠 Home</span>
+        <span>📅 Bookings</span>
+        <span>💬 Messages</span>
+        <span>👤 Profile</span>
+      </div>
+
     </main>
   );
 }

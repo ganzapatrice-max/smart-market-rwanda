@@ -13,12 +13,18 @@ export default function TechnicianProfile() {
   const [user, setUser] = useState<any>(null);
   const [paid, setPaid] = useState(false);
 
+  //////////////////////////////////////////////////////
+  // LOAD DATA
+  //////////////////////////////////////////////////////
   useEffect(() => {
     const load = async () => {
       const snap = await getDoc(doc(db, "workers", id as string));
-      if (snap.exists()) setUser(snap.data());
 
-      // check if user already paid 2k
+      if (snap.exists()) {
+        setUser(snap.data());
+      }
+
+      // check payment
       const paySnap = await getDoc(doc(db, "payments", id as string));
       if (paySnap.exists()) setPaid(true);
     };
@@ -26,6 +32,9 @@ export default function TechnicianProfile() {
     load();
   }, [id]);
 
+  //////////////////////////////////////////////////////
+  // PAY TO CHAT
+  //////////////////////////////////////////////////////
   const payForChat = async () => {
     await setDoc(doc(db, "payments", id as string), {
       paid: true,
@@ -37,14 +46,26 @@ export default function TechnicianProfile() {
     alert("Payment successful ✅");
   };
 
-  if (!user) return <p className="text-white p-6">Loading...</p>;
+  if (!user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-white">
+        Loading...
+      </main>
+    );
+  }
 
+  //////////////////////////////////////////////////////
+  // UI
+  //////////////////////////////////////////////////////
   return (
     <main className="min-h-screen bg-[#111b21] text-white p-6">
 
       {/* TOP NAV */}
       <div className="flex justify-between mb-4">
-        <button onClick={() => router.back()} className="bg-gray-700 px-3 py-2 rounded">
+        <button
+          onClick={() => router.back()}
+          className="bg-gray-700 px-3 py-2 rounded"
+        >
           ⬅ Back
         </button>
 
@@ -53,7 +74,7 @@ export default function TechnicianProfile() {
         </Link>
       </div>
 
-      {/* PROFILE CARD */}
+      {/* CARD */}
       <div className="bg-[#202c33] p-6 rounded-xl space-y-4">
 
         {/* PHOTO */}
@@ -62,14 +83,16 @@ export default function TechnicianProfile() {
           className="w-24 h-24 rounded-full mx-auto object-cover"
         />
 
-        {/* NAME */}
+        {/* NAME + EMAIL */}
         <h1 className="text-2xl font-bold text-center">
           {user.name}
         </h1>
 
-        <p className="text-center text-gray-400">{user.email}</p>
+        <p className="text-center text-gray-400">
+          {user.email}
+        </p>
 
-        {/* INFO */}
+        {/* DETAILS */}
         <p><b>📍 Location:</b> {user.location}</p>
         <p><b>🛠 Service:</b> {user.service}</p>
         <p><b>📞 Phone:</b> {user.phone}</p>
@@ -98,9 +121,10 @@ export default function TechnicianProfile() {
               ⚫ Offline
             </span>
           )}
+
         </div>
 
-        {/* PAYMENT + CHAT */}
+        {/* CHAT PAYMENT */}
         {!paid ? (
           <button
             onClick={payForChat}
@@ -124,11 +148,13 @@ export default function TechnicianProfile() {
 
         {/* GPS */}
         <button
-          onClick={() => {
+          onClick={() =>
             window.open(
-              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(user.location)}`
-            );
-          }}
+              `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                user.location || ""
+              )}`
+            )
+          }
           className="bg-blue-700 p-3 rounded-xl w-full"
         >
           📍 Open GPS Location

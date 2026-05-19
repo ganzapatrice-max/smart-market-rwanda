@@ -245,7 +245,9 @@ export default function FeedPage() {
             {post.media && (
               post.type === "video" ? (
                 <video
-                  ref={(el) => (videoRefs.current[i] = el)}
+                  ref={(el) => {
+  videoRefs.current[i] = el;
+}}
                   src={post.media}
                   controls={!autoPlay}
                   muted

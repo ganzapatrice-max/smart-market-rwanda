@@ -148,16 +148,20 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[#07111a] text-white">
 
-      {/* 🔝 TOP NAV */}
-      <div className="bg-green600 p-7 flex justify-between items-center">
-        <h1 className="font-bold text-lg">Smart Market Rwanda</h1>
+   {/* 🔝 TOP NAV (LARGE) */}
+<div className="bg-green-600 px-6 py-5 flex justify-between items-center shadow-lg">
 
-        <div className="flex gap-3">
-          <Link href="/">🏠</Link>
-          <Link href="/feed">📰</Link>
-          <Link href="/post">➕</Link>
-        </div>
-      </div>
+  <h1 className="font-extrabold text-2xl tracking-wide">
+    Smart Market Rwanda
+  </h1>
+
+  <div className="flex gap-6 text-xl">
+    <Link href="/" className="hover:scale-110 transition">🏠</Link>
+    <Link href="/feed" className="hover:scale-110 transition">📰</Link>
+    <Link href="/post" className="hover:scale-110 transition">➕</Link>
+  </div>
+
+</div>
 
       <div className="p-6 grid md:grid-cols-3 gap-6">
 

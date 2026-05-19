@@ -13,6 +13,7 @@ import {
 
 export default function ReelsPage() {
   const [videos, setVideos] = useState<any[]>([]);
+  const [seen, setSeen] = useState<any>({});
   const router = useRouter();
 
   //////////////////////////////////////////////////////
@@ -38,69 +39,77 @@ export default function ReelsPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // FORMAT TIME
+  // MARK AS SEEN
   //////////////////////////////////////////////////////
-  const formatTime = (ts: any) => {
-    if (!ts?.seconds) return "";
-    return new Date(ts.seconds * 1000).toLocaleString();
+  const markSeen = (id: string) => {
+    setSeen((prev: any) => ({ ...prev, [id]: true }));
   };
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="bg-black p-4">
+    <main className="bg-gray-100 p-3">
 
-      {/* 🔥 HORIZONTAL REELS */}
-      <div className="flex gap-4 overflow-x-auto">
+      {/* STORIES BAR */}
+      <div className="flex gap-3 overflow-x-auto">
 
+        {/* CREATE STORY */}
+        <div className="min-w-[110px] h-[180px] bg-white rounded-xl shadow relative flex flex-col justify-end items-center cursor-pointer">
+          <div className="absolute top-2 left-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl">
+            +
+          </div>
+          <p className="text-xs font-semibold mb-2 text-black">
+            Create story
+          </p>
+        </div>
+
+        {/* REELS */}
         {videos.map((video) => (
           <div
             key={video.id}
-            onClick={() => router.push(`/reel/${video.id}`)}
-            className="min-w-[200px] h-[320px] relative cursor-pointer rounded-xl overflow-hidden"
+            onClick={() => {
+              markSeen(video.id);
+              router.push(`/reel/${video.id}`); // fullscreen viewer
+            }}
+            className="min-w-[110px] h-[180px] rounded-xl overflow-hidden relative cursor-pointer"
           >
-            {/* VIDEO PREVIEW */}
+
+            {/* VIDEO */}
             <video
               src={video.media}
               className="w-full h-full object-cover"
               muted
               playsInline
+              onMouseEnter={(e) => e.currentTarget.play()}
+              onMouseLeave={(e) => {
+                e.currentTarget.pause();
+                e.currentTarget.currentTime = 0;
+              }}
             />
 
-            {/* OVERLAY */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-
-              {/* USER */}
-              <div className="flex items-center gap-2 mb-1">
-                <img
-                  src={video.photo || ""}
-                  className="w-8 h-8 rounded-full object-cover border"
-                />
-
-                <div>
-                  <p className="text-sm font-bold">
-                    {video.name || "User"}
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    {formatTime(video.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              {/* TEXT */}
-              {video.text && (
-                <p className="text-xs line-clamp-2">
-                  {video.text}
-                </p>
-              )}
-
+            {/* PROFILE (BLUE RING = UNSEEN) */}
+            <div
+              className={`absolute top-2 left-2 p-[2px] rounded-full ${
+                seen[video.id]
+                  ? "bg-gray-400"
+                  : "bg-blue-500"
+              }`}
+            >
+              <img
+                src={video.photo || "/default-avatar.png"}
+                className="w-8 h-8 rounded-full object-cover"
+              />
             </div>
+
+            {/* NAME */}
+            <p className="absolute bottom-2 left-2 right-2 text-white text-xs font-semibold leading-tight">
+              {video.name || "User"}
+            </p>
+
           </div>
         ))}
-
       </div>
-
     </main>
   );
 }

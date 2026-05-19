@@ -27,8 +27,6 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [usersMap, setUsersMap] = useState<any>({});
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
   const [autoPlay, setAutoPlay] = useState(true);
 
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -60,7 +58,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS REALTIME (FIXED → workers + live updates)
+  // USERS REALTIME (🔥 FIXED: workers collection)
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!posts.length) return;
@@ -86,7 +84,7 @@ export default function FeedPage() {
   }, [posts]);
 
   //////////////////////////////////////////////////////
-  // AUTO PLAY VIDEOS
+  // AUTO PLAY
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!autoPlay) return;
@@ -114,7 +112,7 @@ export default function FeedPage() {
   }, [posts, autoPlay]);
 
   //////////////////////////////////////////////////////
-  // LIKE
+  // LIKE / DELETE / SHARE
   //////////////////////////////////////////////////////
   const likePost = async (id: string) => {
     await updateDoc(doc(db, "posts", id), {
@@ -122,17 +120,11 @@ export default function FeedPage() {
     });
   };
 
-  //////////////////////////////////////////////////////
-  // DELETE
-  //////////////////////////////////////////////////////
   const deletePost = async (id: string) => {
     if (!confirm("Delete this post?")) return;
     await deleteDoc(doc(db, "posts", id));
   };
 
-  //////////////////////////////////////////////////////
-  // SHARE
-  //////////////////////////////////////////////////////
   const sharePost = async (post: any) => {
     if (!user) return;
 
@@ -153,28 +145,14 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER + SEARCH
-  //////////////////////////////////////////////////////
-  const filteredPosts = posts.filter((post) => {
-    const matchType = filter === "all" || post.type === filter;
-
-    const name = usersMap[post.userId]?.name || "";
-    const matchSearch =
-      post.text?.toLowerCase().includes(search.toLowerCase()) ||
-      name.toLowerCase().includes(search.toLowerCase());
-
-    return matchType && matchSearch;
-  });
-
-  //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="w-full space-y-4 p-3">
+    <main className="bg-gray-100 min-h-screen p-3 space-y-4">
 
-      {/* 🔝 AUTO PLAY TOGGLE */}
+      {/* 🔝 TOP */}
       <div className="flex justify-between items-center bg-white p-3 rounded-xl">
-        <p className="text-black font-semibold">Feed</p>
+        <h1 className="font-bold text-black">Smart Market Rwanda</h1>
 
         <button
           onClick={() => setAutoPlay(!autoPlay)}
@@ -184,18 +162,52 @@ export default function FeedPage() {
         </button>
       </div>
 
-      {/* 🔍 SEARCH */}
-      <div className="bg-white p-3 rounded-xl">
-        <input
-          placeholder="Search posts or users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full p-2 bg-gray-100 text-black rounded"
-        />
+      {/* 🔥 STORIES / REELS */}
+      <div className="flex gap-3 overflow-x-auto">
+
+        {/* CREATE */}
+        <div className="min-w-[110px] h-[180px] bg-white rounded-xl flex items-center justify-center text-black font-bold cursor-pointer">
+          +
+        </div>
+
+        {posts
+          .filter((p) => p.type === "video")
+          .map((post) => {
+            const userData = usersMap[post.userId];
+
+            return (
+              <div
+                key={post.id}
+                onClick={() => router.push(`/reel/${post.id}`)}
+                className="min-w-[110px] h-[180px] relative rounded-xl overflow-hidden cursor-pointer"
+              >
+                <video
+                  src={post.media}
+                  className="w-full h-full object-cover"
+                  muted
+                />
+
+                {/* PROFILE */}
+                <img
+                  src={
+                    userData?.photo ||
+                    post.photo ||
+                    "/default-avatar.png"
+                  }
+                  className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-blue-500"
+                />
+
+                {/* NAME */}
+                <p className="absolute bottom-2 left-2 right-2 text-white text-xs font-semibold">
+                  {userData?.name || post.name || "User"}
+                </p>
+              </div>
+            );
+          })}
       </div>
 
       {/* POSTS */}
-      {filteredPosts.map((post, i) => {
+      {posts.map((post, i) => {
         const userData = usersMap[post.userId];
 
         return (
@@ -205,16 +217,18 @@ export default function FeedPage() {
             <div className="flex justify-between">
 
               <div className="flex gap-2 items-center">
-                {userData?.photo && (
-                  <img
-                    src={userData.photo}
-                    className="w-10 h-10 rounded-full"
-                  />
-                )}
+                <img
+                  src={
+                    userData?.photo ||
+                    post.photo ||
+                    "/default-avatar.png"
+                  }
+                  className="w-10 h-10 rounded-full border-2 border-blue-500"
+                />
 
                 <div>
                   <p className="font-semibold text-black text-sm">
-                    {userData?.name || "Loading..."}
+                    {userData?.name || post.name || "User"}
                   </p>
                   <p className="text-xs text-gray-500">
                     {post.type}
@@ -246,8 +260,8 @@ export default function FeedPage() {
               post.type === "video" ? (
                 <video
                   ref={(el) => {
-  videoRefs.current[i] = el;
-}}
+                    videoRefs.current[i] = el;
+                  }}
                   src={post.media}
                   controls={!autoPlay}
                   muted
@@ -261,9 +275,13 @@ export default function FeedPage() {
 
             {/* ACTIONS */}
             <div className="flex justify-around mt-3 text-sm">
-              <button onClick={() => likePost(post.id)}>👍 {post.likes || 0}</button>
+              <button onClick={() => likePost(post.id)}>
+                👍 {post.likes || 0}
+              </button>
               <button>💬</button>
-              <button onClick={() => sharePost(post)}>↗ {post.shares || 0}</button>
+              <button onClick={() => sharePost(post)}>
+                ↗ {post.shares || 0}
+              </button>
             </div>
 
             <Comments postId={post.id} postOwnerId={post.userId} />

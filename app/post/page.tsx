@@ -7,7 +7,7 @@ import { auth, db } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
-  getDoc,
+  onSnapshot,
   collection,
   addDoc,
   serverTimestamp,
@@ -17,21 +17,23 @@ export default function PostPage() {
   const [user, setUser] = useState<any>(null);
 
   const [name, setName] = useState("");
-  const [photo, setPhoto] = useState("/default-avatar.png");
+  const [photo, setPhoto] = useState("");
   const [role, setRole] = useState("patient");
 
   const [text, setText] = useState("");
   const [media, setMedia] = useState("");
   const [type, setType] = useState("normal");
 
+  const [autoPlay, setAutoPlay] = useState(true);
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
   //////////////////////////////////////////////////////
-  // LOAD USER FROM "workers" ✅ FIXED
+  // REAL-TIME USER PROFILE ✅ FIXED
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         window.location.href = "/login";
         return;
@@ -39,43 +41,33 @@ export default function PostPage() {
 
       setUser(currentUser);
 
-      try {
-        // ✅ FIX: workers (NOT users)
-        const ref = doc(db, "workers", currentUser.uid);
-        const snap = await getDoc(ref);
+      // ✅ REAL-TIME LISTENER
+      const ref = doc(db, "workers", currentUser.uid);
 
+      const unsubProfile = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
 
-          setName(data?.name || "User");
+          setName(data?.name || "");
           setRole(data?.role || "patient");
-
-          if (data?.photo && data.photo.startsWith("http")) {
-            setPhoto(data.photo);
-          } else {
-            setPhoto("/default-avatar.png");
-          }
-        } else {
-          setName("User");
-          setPhoto("/default-avatar.png");
+          setPhoto(data?.photo || "");
         }
-      } catch (err) {
-        console.error("Profile load error:", err);
-        setPhoto("/default-avatar.png");
-      }
+      });
+
+      return () => unsubProfile();
     });
 
-    return () => unsub();
+    return () => unsubAuth();
   }, []);
 
   //////////////////////////////////////////////////////
-  // UPLOAD FILE (CLOUDINARY)
+  // UPLOAD FILE
   //////////////////////////////////////////////////////
   const uploadFile = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setMsg("Uploading file...");
+    setMsg("Uploading...");
 
     const data = new FormData();
     data.append("file", file);
@@ -92,11 +84,11 @@ export default function PostPage() {
     const result = await res.json();
 
     setMedia(result.secure_url);
-    setMsg("✅ Upload complete");
+    setMsg("✅ Upload done");
   };
 
   //////////////////////////////////////////////////////
-  // CREATE POST (WITH PROFILE DATA) ✅ IMPORTANT
+  // CREATE POST
   //////////////////////////////////////////////////////
   const createPost = async () => {
     if (!text && !media) return;
@@ -110,7 +102,7 @@ export default function PostPage() {
         userId: user.uid,
         email: user.email,
 
-        // ✅ SAVE PROFILE DATA
+        // ✅ ALWAYS CURRENT DATA
         name: name,
         photo: photo,
         role: role,
@@ -119,6 +111,8 @@ export default function PostPage() {
         media,
         type,
 
+        autoPlay, // ✅ SAVE AUTOPLAY PREFERENCE
+
         likes: 0,
         comments: 0,
         shares: 0,
@@ -126,15 +120,14 @@ export default function PostPage() {
         createdAt: serverTimestamp(),
       });
 
-      // RESET
       setText("");
       setMedia("");
       setType("normal");
 
-      setMsg("✅ Post Published Successfully");
+      setMsg("✅ Posted");
     } catch (error) {
       console.error(error);
-      setMsg("❌ Failed to publish");
+      setMsg("❌ Failed");
     }
 
     setLoading(false);
@@ -148,7 +141,7 @@ export default function PostPage() {
       <div className="max-w-3xl mx-auto">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Create Post</h1>
 
           <Link href="/feed" className="bg-green-600 px-5 py-3 rounded-full">
@@ -160,12 +153,19 @@ export default function PostPage() {
 
           {/* USER */}
           <div className="flex items-center gap-4 mb-6">
-            <img
-              src={photo}
-              className="w-14 h-14 rounded-full object-cover"
-            />
+            {photo ? (
+              <img
+                src={photo}
+                className="w-14 h-14 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-gray-600 flex items-center justify-center">
+                👤
+              </div>
+            )}
+
             <div>
-              <h2 className="font-bold text-lg">{name}</h2>
+              <h2 className="font-bold text-lg">{name || "..."}</h2>
               <p className="text-gray-400 text-sm">
                 {user?.email} • {role}
               </p>
@@ -182,11 +182,11 @@ export default function PostPage() {
             onChange={(e) => setType(e.target.value)}
             className="w-full p-4 rounded-xl bg-[#1e293b] mb-4"
           >
-            <option value="normal">Text Update</option>
-            <option value="service">Service Promotion</option>
-            <option value="product">Product For Sale</option>
-            <option value="job">Job Request</option>
-            <option value="video">Short Video</option>
+            <option value="normal">Text</option>
+            <option value="service">Service</option>
+            <option value="product">Product</option>
+            <option value="job">Job</option>
+            <option value="video">Video</option>
           </select>
 
           {/* TEXT */}
@@ -194,7 +194,7 @@ export default function PostPage() {
             rows={5}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder="Write something..."
             className="w-full p-4 rounded-xl bg-[#1e293b]"
           />
 
@@ -210,12 +210,27 @@ export default function PostPage() {
           {media && (
             <div className="mt-4">
               {media.includes(".mp4") ? (
-                <video src={media} controls className="rounded-2xl w-full" />
+                <video
+                  src={media}
+                  controls={!autoPlay}
+                  autoPlay={autoPlay}
+                  muted
+                  loop
+                  className="rounded-2xl w-full"
+                />
               ) : (
                 <img src={media} className="rounded-2xl w-full" />
               )}
             </div>
           )}
+
+          {/* AUTOPLAY TOGGLE */}
+          <button
+            onClick={() => setAutoPlay(!autoPlay)}
+            className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded"
+          >
+            {autoPlay ? "Auto Play ON" : "Auto Play OFF"}
+          </button>
 
           {/* ACTIONS */}
           <div className="grid grid-cols-2 gap-4 mt-6">
@@ -224,7 +239,7 @@ export default function PostPage() {
               disabled={loading}
               className="bg-blue-600 py-4 rounded-full font-bold"
             >
-              {loading ? "Posting..." : "Publish Post"}
+              {loading ? "Posting..." : "Publish"}
             </button>
 
             <Link

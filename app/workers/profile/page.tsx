@@ -270,7 +270,7 @@ export default function ProfilePage() {
 
       {/* 🔻 BOTTOM NAV TEXT */}
       <div className="fixed bottom-0 left-0 right-0 bg-black text-center py-3 text-sm text-gray-300 border-t border-white/10">
-        you have choosen good platform smart market Rwanda. start to day and fly later.
+        Thank you for chosing good platform smart market Rwanda. start to day and fly later.
       </div>
 
     </main>

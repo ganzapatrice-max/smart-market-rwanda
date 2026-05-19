@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { auth, db } from "@/lib/firebase";
@@ -17,7 +17,6 @@ import {
   updateDoc,
   deleteDoc,
   increment,
-  getDoc,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -30,6 +29,9 @@ export default function FeedPage() {
   const [usersMap, setUsersMap] = useState<any>({});
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [autoPlay, setAutoPlay] = useState(true);
+
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   //////////////////////////////////////////////////////
   // AUTH
@@ -40,7 +42,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // POSTS
+  // POSTS (REALTIME)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -58,30 +60,58 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS MAP
+  // USERS REALTIME (FIXED → workers + live updates)
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!posts.length) return;
 
-    const loadUsers = async () => {
-      const map: any = {};
+    const unsubs: any[] = [];
 
-      await Promise.all(
-        posts.map(async (post) => {
-          if (!map[post.userId]) {
-            const snap = await getDoc(doc(db, "users", post.userId));
-            if (snap.exists()) {
-              map[post.userId] = snap.data();
-            }
+    posts.forEach((post) => {
+      if (!usersMap[post.userId]) {
+        const unsub = onSnapshot(doc(db, "workers", post.userId), (snap) => {
+          if (snap.exists()) {
+            setUsersMap((prev: any) => ({
+              ...prev,
+              [post.userId]: snap.data(),
+            }));
           }
-        })
-      );
+        });
 
-      setUsersMap(map);
-    };
+        unsubs.push(unsub);
+      }
+    });
 
-    loadUsers();
+    return () => unsubs.forEach((u) => u());
   }, [posts]);
+
+  //////////////////////////////////////////////////////
+  // AUTO PLAY VIDEOS
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.7 }
+    );
+
+    videoRefs.current.forEach((video) => {
+      if (video) observer.observe(video);
+    });
+
+    return () => observer.disconnect();
+  }, [posts, autoPlay]);
 
   //////////////////////////////////////////////////////
   // LIKE
@@ -106,31 +136,19 @@ export default function FeedPage() {
   const sharePost = async (post: any) => {
     if (!user) return;
 
-    try {
-      await updateDoc(doc(db, "posts", post.id), {
-        shares: increment(1),
+    await updateDoc(doc(db, "posts", post.id), {
+      shares: increment(1),
+    });
+
+    if (post.userId !== user.uid) {
+      await addDoc(collection(db, "notifications"), {
+        toUserId: post.userId,
+        fromUserId: user.uid,
+        type: "share",
+        postId: post.id,
+        createdAt: serverTimestamp(),
+        read: false,
       });
-
-      if (post.userId !== user.uid) {
-        await addDoc(collection(db, "notifications"), {
-          toUserId: post.userId,
-          fromUserId: user.uid,
-          type: "share",
-          postId: post.id,
-          createdAt: serverTimestamp(),
-          read: false,
-        });
-      }
-
-      if (navigator.share) {
-        await navigator.share({
-          title: "Smart Market",
-          text: post.text,
-          url: window.location.href,
-        });
-      }
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -140,11 +158,10 @@ export default function FeedPage() {
   const filteredPosts = posts.filter((post) => {
     const matchType = filter === "all" || post.type === filter;
 
+    const name = usersMap[post.userId]?.name || "";
     const matchSearch =
       post.text?.toLowerCase().includes(search.toLowerCase()) ||
-      usersMap[post.userId]?.name
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
+      name.toLowerCase().includes(search.toLowerCase());
 
     return matchType && matchSearch;
   });
@@ -153,115 +170,60 @@ export default function FeedPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="w-full space-y-4">
+    <main className="w-full space-y-4 p-3">
 
-      {/* 🔍 SEARCH (FIXED VISIBILITY) */}
-      <div className="bg-white p-3 rounded-xl shadow-sm">
+      {/* 🔝 AUTO PLAY TOGGLE */}
+      <div className="flex justify-between items-center bg-white p-3 rounded-xl">
+        <p className="text-black font-semibold">Feed</p>
+
+        <button
+          onClick={() => setAutoPlay(!autoPlay)}
+          className="bg-blue-600 text-white px-4 py-1 rounded-full"
+        >
+          {autoPlay ? "AutoPlay ON" : "AutoPlay OFF"}
+        </button>
+      </div>
+
+      {/* 🔍 SEARCH */}
+      <div className="bg-white p-3 rounded-xl">
         <input
           placeholder="Search posts or users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full p-2 rounded-lg bg-gray-100 text-black placeholder-gray-500 outline-none"
+          className="w-full p-2 bg-gray-100 text-black rounded"
         />
       </div>
 
-      {/* 🎥 REELS */}
-      <div className="flex gap-3 overflow-x-auto">
-        {posts
-          .filter((p) => p.type === "video")
-          .map((post) => (
-            <div
-              key={post.id}
-              onClick={() => router.push(`/reel/${post.id}`)}
-              className="min-w-[100px] cursor-pointer"
-            >
-              <video
-                src={post.media}
-                className="h-32 w-full object-cover rounded-lg"
-                muted
-              />
-              <p className="text-xs text-center text-black">
-                {usersMap[post.userId]?.name || "User"}
-              </p>
-            </div>
-          ))}
-      </div>
-
-      {/* CREATE POST (FIXED) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm">
-        <div className="flex gap-3 items-center">
-          <img
-            src={
-              (user && usersMap[user?.uid]?.photo) ||
-              "/default-avatar.png"
-            }
-            className="w-10 h-10 rounded-full"
-          />
-
-          <input
-            placeholder="What's on your mind?"
-            onClick={() => router.push("/post")}
-            readOnly
-            className="flex-1 bg-gray-100 text-black px-4 py-2 rounded-full"
-          />
-        </div>
-      </div>
-
-      {/* FILTER */}
-      <div className="flex gap-2 overflow-x-auto">
-        {["all", "normal", "image", "video", "service"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded-full text-sm ${
-              filter === f
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
       {/* POSTS */}
-      {filteredPosts.map((post) => {
+      {filteredPosts.map((post, i) => {
         const userData = usersMap[post.userId];
 
         return (
-          <div key={post.id} className="bg-white rounded-xl p-4 shadow-sm">
+          <div key={post.id} className="bg-white p-4 rounded-xl">
 
             {/* HEADER */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between">
+
               <div className="flex gap-2 items-center">
-                <img
-                  src={
-                    post.photo ||
-                    userData?.photo ||
-                    "/default-avatar.png"
-                  }
-                  className="w-10 h-10 rounded-full"
-                />
+                {userData?.photo && (
+                  <img
+                    src={userData.photo}
+                    className="w-10 h-10 rounded-full"
+                  />
+                )}
 
                 <div>
                   <p className="font-semibold text-black text-sm">
-                    {userData?.name || "Unknown User"}
+                    {userData?.name || "Loading..."}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {post.type || "post"}
+                    {post.type}
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2">
                 <FollowButton targetUserId={post.userId} />
-
-                <Link
-                  href={`/profile/${post.userId}`}
-                  className="text-blue-500 text-xs"
-                >
-                  View
-                </Link>
 
                 {user?.uid === post.userId && (
                   <button
@@ -276,43 +238,32 @@ export default function FeedPage() {
 
             {/* TEXT */}
             {post.text && (
-              <p className="my-3 text-black font-medium">
-                {post.text}
-              </p>
+              <p className="my-3 text-black">{post.text}</p>
             )}
 
             {/* MEDIA */}
             {post.media && (
-              <div className="mt-2">
-                {post.type === "video" ? (
-                  <video
-                    src={post.media}
-                    controls
-                    className="rounded-lg w-full"
-                  />
-                ) : (
-                  <img
-                    src={post.media}
-                    className="rounded-lg w-full"
-                  />
-                )}
-              </div>
+              post.type === "video" ? (
+                <video
+                  ref={(el) => (videoRefs.current[i] = el)}
+                  src={post.media}
+                  controls={!autoPlay}
+                  muted
+                  loop
+                  className="rounded w-full"
+                />
+              ) : (
+                <img src={post.media} className="rounded w-full" />
+              )
             )}
 
-            {/* COUNTS */}
-            <div className="flex justify-between text-xs text-gray-500 mt-3">
-              <span>👍 {post.likes || 0}</span>
-              <span>↗ {post.shares || 0}</span>
-            </div>
-
             {/* ACTIONS */}
-            <div className="flex justify-around border-t mt-3 pt-2 text-sm">
-              <button onClick={() => likePost(post.id)}>👍 Like</button>
-              <button>💬 Comment</button>
-              <button onClick={() => sharePost(post)}>↗ Share</button>
+            <div className="flex justify-around mt-3 text-sm">
+              <button onClick={() => likePost(post.id)}>👍 {post.likes || 0}</button>
+              <button>💬</button>
+              <button onClick={() => sharePost(post)}>↗ {post.shares || 0}</button>
             </div>
 
-            {/* COMMENTS */}
             <Comments postId={post.id} postOwnerId={post.userId} />
           </div>
         );

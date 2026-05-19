@@ -22,7 +22,7 @@ export default function ProfilePage() {
   const [service, setService] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("technician");
-  const [photo, setPhoto] = useState(""); // ✅ no default
+  const [photo, setPhoto] = useState("");
   const [verified, setVerified] = useState(false);
 
   const [editing, setEditing] = useState(false);
@@ -53,10 +53,8 @@ export default function ProfilePage() {
         setService(d.service || "");
         setBio(d.bio || "");
         setRole(d.role || "technician");
-        setPhoto(d.photo || ""); // ✅ only real photo
+        setPhoto(d.photo || "");
         setVerified(d.verified || false);
-      } else {
-        setName(currentUser.email || "");
       }
     });
 
@@ -84,7 +82,7 @@ export default function ProfilePage() {
           service,
           bio,
           role,
-          photo, // ✅ only saved if exists
+          photo,
           verified,
           updatedAt: serverTimestamp(),
         },
@@ -94,39 +92,14 @@ export default function ProfilePage() {
       setMsg("✅ Profile saved");
       setEditing(false);
     } catch {
-      setMsg("❌ Failed to save");
+      setMsg("❌ Failed");
     }
 
     setSaving(false);
   };
 
   //////////////////////////////////////////////////////
-  // VERIFIED
-  //////////////////////////////////////////////////////
-  const activateVerified = async () => {
-    if (!user) return;
-
-    const ok = confirm("Pay 5,000 Frw?");
-    if (!ok) return;
-
-    await updateDoc(doc(db, "workers", user.uid), {
-      verified: true,
-    });
-
-    setVerified(true);
-    setMsg("✔ Verified Activated");
-  };
-
-  //////////////////////////////////////////////////////
-  // LOGOUT
-  //////////////////////////////////////////////////////
-  const logout = async () => {
-    await signOut(auth);
-    window.location.href = "/login";
-  };
-
-  //////////////////////////////////////////////////////
-  // PHOTO UPLOAD
+  // PHOTO UPLOAD (CAN CHANGE ANYTIME)
   //////////////////////////////////////////////////////
   const uploadPhoto = async (e: any) => {
     const file = e.target.files?.[0];
@@ -146,101 +119,181 @@ export default function ProfilePage() {
     const result = await res.json();
 
     setPhoto(result.secure_url);
-    setMsg("✅ Photo uploaded");
+    setMsg("✅ Photo updated");
   };
+
+  //////////////////////////////////////////////////////
+  // LOGOUT
+  //////////////////////////////////////////////////////
+  const logout = async () => {
+    await signOut(auth);
+    window.location.href = "/login";
+  };
+
+  //////////////////////////////////////////////////////
+  // VERIFIED
+  //////////////////////////////////////////////////////
+  const activateVerified = async () => {
+    await updateDoc(doc(db, "workers", user.uid), {
+      verified: true,
+    });
+    setVerified(true);
+  };
+
+  if (!user) return <p className="text-white p-6">Loading...</p>;
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#07111a] text-white p-6">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+    <main className="min-h-screen bg-[#07111a] text-white">
+
+      {/* 🔝 TOP NAV */}
+      <div className="bg-green-600 p-4 flex justify-between items-center">
+        <h1 className="font-bold text-lg">Smart Market Rwanda</h1>
+
+        <div className="flex gap-3">
+          <Link href="/">🏠</Link>
+          <Link href="/feed">📰</Link>
+          <Link href="/post">➕</Link>
+        </div>
+      </div>
+
+      <div className="p-6 grid md:grid-cols-3 gap-6">
 
         {/* LEFT */}
-        <div className="bg-[#0f172a] rounded-3xl p-6 text-center">
+        <div className="bg-[#0f172a] p-6 rounded-2xl text-center">
 
           {/* PHOTO */}
           {photo ? (
             <img
               src={photo}
-              className="w-32 h-32 rounded-full object-cover border-4 border-green-500 mx-auto"
+              className="w-28 h-28 rounded-full mx-auto object-cover mb-3"
             />
           ) : (
-            <label className="block bg-gray-700 p-6 rounded-xl cursor-pointer">
-              Upload Photo
-              <input
-                type="file"
-                accept="image/*"
-                onChange={uploadPhoto}
-                hidden
-              />
-            </label>
+            <div className="w-28 h-28 rounded-full bg-gray-700 mx-auto mb-3 flex items-center justify-center">
+              No Photo
+            </div>
           )}
 
-          <h2 className="mt-4 text-xl font-bold">{name}</h2>
-          <p className="text-gray-400">{user?.email}</p>
+          {/* CHANGE PHOTO */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={uploadPhoto}
+            className="mb-3"
+          />
+
+          <h2 className="text-xl font-bold">{name}</h2>
+          <p className="text-sm text-gray-400">{user.email}</p>
 
           {verified && (
-            <div className="mt-2 bg-blue-600 px-3 py-1 rounded-full text-sm">
-              ✔ Verified
-            </div>
+            <p className="text-blue-400 mt-2">✔ Verified</p>
           )}
 
           <button
             onClick={() => setEditing(!editing)}
-            className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-full"
+            className="bg-yellow-500 text-black px-4 py-2 rounded mt-4"
           >
-            Edit
+            Edit Profile
           </button>
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <Link href="/" className="bg-cyan-600 py-2 rounded-full">Home</Link>
-            <button onClick={logout} className="bg-red-600 py-2 rounded-full">Logout</button>
-            <Link href="/post" className="bg-green-600 py-2 rounded-full">Post</Link>
-            <Link href="/feed" className="bg-blue-600 py-2 rounded-full">Feed</Link>
-          </div>
+          <button
+            onClick={logout}
+            className="bg-red-600 px-4 py-2 rounded mt-2"
+          >
+            Logout
+          </button>
         </div>
 
         {/* RIGHT */}
-        <div className="md:col-span-2 bg-[#0f172a] rounded-3xl p-6">
+        <div className="md:col-span-2 bg-[#0f172a] p-6 rounded-2xl">
 
-          {msg && <div className="mb-4 bg-green-700 p-3 rounded">{msg}</div>}
+          {msg && <p className="mb-3">{msg}</p>}
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <input disabled={!editing} value={name} onChange={(e)=>setName(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
-            <input disabled value={user?.email || ""} className="p-3 bg-[#111827] rounded"/>
-            <input disabled={!editing} value={phone} onChange={(e)=>setPhone(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
-            <input disabled={!editing} value={location} onChange={(e)=>setLocation(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
-            <input disabled={!editing} value={service} onChange={(e)=>setService(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
+          <div className="grid grid-cols-2 gap-3">
 
-            <select disabled={!editing} value={role} onChange={(e)=>setRole(e.target.value)} className="p-3 bg-[#1e293b] rounded">
+            <input
+              disabled={!editing}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name"
+              className="p-3 rounded bg-[#1e293b]"
+            />
+
+            <input
+              disabled={!editing}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone"
+              className="p-3 rounded bg-[#1e293b]"
+            />
+
+            <input
+              disabled={!editing}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Location"
+              className="p-3 rounded bg-[#1e293b]"
+            />
+
+            <input
+              disabled={!editing}
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="Service"
+              className="p-3 rounded bg-[#1e293b]"
+            />
+
+            {/* ROLE */}
+            <select
+              disabled={!editing}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="p-3 rounded bg-[#1e293b] col-span-2"
+            >
               <option value="technician">Technician</option>
               <option value="patient">Patient</option>
             </select>
+
           </div>
 
           <textarea
             disabled={!editing}
             value={bio}
-            onChange={(e)=>setBio(e.target.value)}
-            className="w-full mt-4 p-3 bg-[#1e293b] rounded"
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Bio"
+            className="w-full mt-4 p-3 rounded bg-[#1e293b]"
           />
 
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <button onClick={saveProfile} className="bg-green-600 py-3 rounded">
-              {saving ? "Saving..." : "Save"}
+          <div className="grid grid-cols-3 gap-3 mt-6">
+
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="bg-green-600 p-3 rounded"
+            >
+              Save
             </button>
 
-            <button onClick={activateVerified} className="bg-blue-600 py-3 rounded">
+            <button
+              onClick={activateVerified}
+              className="bg-blue-600 p-3 rounded"
+            >
               Verified
             </button>
 
-            <Link href="/settings" className="bg-orange-500 text-center py-3 rounded">
-              Settings
+            <Link
+              href="/workers/technicians"
+              className="bg-purple-600 p-3 rounded text-center"
+            >
+              Find Tech
             </Link>
+
           </div>
 
         </div>
+
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -12,10 +13,10 @@ import {
 
 export default function ReelsPage() {
   const [videos, setVideos] = useState<any[]>([]);
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const router = useRouter();
 
   //////////////////////////////////////////////////////
-  // LOAD VIDEOS (WITH ORDER)
+  // LOAD VIDEOS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(
@@ -37,32 +38,6 @@ export default function ReelsPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // AUTO PLAY ON SCROLL
-  //////////////////////////////////////////////////////
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement;
-
-          if (entry.isIntersecting) {
-            video.play().catch(() => {});
-          } else {
-            video.pause();
-          }
-        });
-      },
-      { threshold: 0.8 }
-    );
-
-    videoRefs.current.forEach((video) => {
-      if (video) observer.observe(video);
-    });
-
-    return () => observer.disconnect();
-  }, [videos]);
-
-  //////////////////////////////////////////////////////
   // FORMAT TIME
   //////////////////////////////////////////////////////
   const formatTime = (ts: any) => {
@@ -74,56 +49,57 @@ export default function ReelsPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="h-screen overflow-y-scroll snap-y snap-mandatory bg-black">
+    <main className="bg-black p-4">
 
-      {videos.map((video, i) => (
-        <div
-          key={video.id}
-          className="h-screen relative snap-start"
-        >
-          {/* VIDEO */}
-          <video
-            ref={(el) => {
-              videoRefs.current[i] = el;
-            }}
-            src={video.media}
-            className="h-full w-full object-cover"
-            loop
-            muted
-            playsInline
-          />
+      {/* 🔥 HORIZONTAL REELS */}
+      <div className="flex gap-4 overflow-x-auto">
 
-          {/* 🔥 OVERLAY UI */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            onClick={() => router.push(`/reel/${video.id}`)}
+            className="min-w-[200px] h-[320px] relative cursor-pointer rounded-xl overflow-hidden"
+          >
+            {/* VIDEO PREVIEW */}
+            <video
+              src={video.media}
+              className="w-full h-full object-cover"
+              muted
+              playsInline
+            />
 
-            {/* USER INFO */}
-            <div className="flex items-center gap-3 mb-2">
+            {/* OVERLAY */}
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
 
-              <img
-                src={video.photo || "/default-avatar.png"}
-                className="w-10 h-10 rounded-full object-cover border"
-              />
+              {/* USER */}
+              <div className="flex items-center gap-2 mb-1">
+                <img
+                  src={video.photo || ""}
+                  className="w-8 h-8 rounded-full object-cover border"
+                />
 
-              <div>
-                <p className="font-bold">{video.name || "User"}</p>
-                <p className="text-xs text-gray-300">
-                  {formatTime(video.createdAt)}
-                </p>
+                <div>
+                  <p className="text-sm font-bold">
+                    {video.name || "User"}
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    {formatTime(video.createdAt)}
+                  </p>
+                </div>
               </div>
 
+              {/* TEXT */}
+              {video.text && (
+                <p className="text-xs line-clamp-2">
+                  {video.text}
+                </p>
+              )}
+
             </div>
-
-            {/* TEXT */}
-            {video.text && (
-              <p className="text-sm mb-2">
-                {video.text}
-              </p>
-            )}
-
           </div>
+        ))}
 
-        </div>
-      ))}
+      </div>
 
     </main>
   );

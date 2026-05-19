@@ -17,7 +17,8 @@ export default function PostPage() {
   const [user, setUser] = useState<any>(null);
 
   const [name, setName] = useState("");
-  const [photo, setPhoto] = useState("/default-avatar.png"); // ✅ default first
+  const [photo, setPhoto] = useState("/default-avatar.png");
+  const [role, setRole] = useState("patient");
 
   const [text, setText] = useState("");
   const [media, setMedia] = useState("");
@@ -27,7 +28,7 @@ export default function PostPage() {
   const [msg, setMsg] = useState("");
 
   //////////////////////////////////////////////////////
-  // LOAD USER + PROFILE ✅ FIXED
+  // LOAD USER FROM "workers" ✅ FIXED
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
@@ -39,15 +40,16 @@ export default function PostPage() {
       setUser(currentUser);
 
       try {
-        const ref = doc(db, "users", currentUser.uid);
+        // ✅ FIX: workers (NOT users)
+        const ref = doc(db, "workers", currentUser.uid);
         const snap = await getDoc(ref);
 
         if (snap.exists()) {
           const data = snap.data();
 
           setName(data?.name || "User");
+          setRole(data?.role || "patient");
 
-          // ✅ IMPORTANT FIX
           if (data?.photo && data.photo.startsWith("http")) {
             setPhoto(data.photo);
           } else {
@@ -67,7 +69,7 @@ export default function PostPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // UPLOAD FILE
+  // UPLOAD FILE (CLOUDINARY)
   //////////////////////////////////////////////////////
   const uploadFile = async (e: any) => {
     const file = e.target.files?.[0];
@@ -94,7 +96,7 @@ export default function PostPage() {
   };
 
   //////////////////////////////////////////////////////
-  // CREATE POST ✅ FIXED
+  // CREATE POST (WITH PROFILE DATA) ✅ IMPORTANT
   //////////////////////////////////////////////////////
   const createPost = async () => {
     if (!text && !media) return;
@@ -108,8 +110,10 @@ export default function PostPage() {
         userId: user.uid,
         email: user.email,
 
-        name: name || "User",
-        photo: photo || "/default-avatar.png", // ✅ GUARANTEED VALUE
+        // ✅ SAVE PROFILE DATA
+        name: name,
+        photo: photo,
+        role: role,
 
         text,
         media,
@@ -118,6 +122,7 @@ export default function PostPage() {
         likes: 0,
         comments: 0,
         shares: 0,
+
         createdAt: serverTimestamp(),
       });
 
@@ -142,6 +147,7 @@ export default function PostPage() {
     <main className="min-h-screen bg-[#07111a] text-white p-6">
       <div className="max-w-3xl mx-auto">
 
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Create Post</h1>
 
@@ -160,7 +166,9 @@ export default function PostPage() {
             />
             <div>
               <h2 className="font-bold text-lg">{name}</h2>
-              <p className="text-gray-400 text-sm">{user?.email}</p>
+              <p className="text-gray-400 text-sm">
+                {user?.email} • {role}
+              </p>
             </div>
           </div>
 
@@ -168,6 +176,7 @@ export default function PostPage() {
             <div className="mb-4 bg-green-700 p-3 rounded-xl">{msg}</div>
           )}
 
+          {/* TYPE */}
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -180,6 +189,7 @@ export default function PostPage() {
             <option value="video">Short Video</option>
           </select>
 
+          {/* TEXT */}
           <textarea
             rows={5}
             value={text}
@@ -188,6 +198,7 @@ export default function PostPage() {
             className="w-full p-4 rounded-xl bg-[#1e293b]"
           />
 
+          {/* FILE */}
           <input
             type="file"
             accept="image/*,video/*"
@@ -195,6 +206,7 @@ export default function PostPage() {
             className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
           />
 
+          {/* PREVIEW */}
           {media && (
             <div className="mt-4">
               {media.includes(".mp4") ? (
@@ -205,6 +217,7 @@ export default function PostPage() {
             </div>
           )}
 
+          {/* ACTIONS */}
           <div className="grid grid-cols-2 gap-4 mt-6">
             <button
               onClick={createPost}

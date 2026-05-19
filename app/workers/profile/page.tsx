@@ -41,8 +41,7 @@ export default function ProfilePage() {
 
       setUser(currentUser);
 
-      const ref = doc(db, "workers", currentUser.uid);
-      const snap = await getDoc(ref);
+      const snap = await getDoc(doc(db, "workers", currentUser.uid));
 
       if (snap.exists()) {
         const d = snap.data();
@@ -99,7 +98,7 @@ export default function ProfilePage() {
   };
 
   //////////////////////////////////////////////////////
-  // PHOTO UPLOAD (CAN CHANGE ANYTIME)
+  // PHOTO UPLOAD
   //////////////////////////////////////////////////////
   const uploadPhoto = async (e: any) => {
     const file = e.target.files?.[0];
@@ -142,45 +141,38 @@ export default function ProfilePage() {
 
   if (!user) return <p className="text-white p-6">Loading...</p>;
 
-  //////////////////////////////////////////////////////
-  // UI
-  //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#07111a] text-white">
+    <main className="min-h-screen bg-[#07111a] text-white pb-24">
 
-   {/* 🔝 TOP NAV (LARGE) */}
-<div className="bg-green-600 px-6 py-5 flex justify-between items-center shadow-lg">
+      {/* 🔝 TOP NAV */}
+      <div className="bg-green-600 px-6 py-5 flex justify-between items-center shadow-lg">
+        <h1 className="font-extrabold text-2xl">
+          Smart Market Rwanda
+        </h1>
 
-  <h1 className="font-extrabold text-2xl tracking-wide">
-    Smart Market Rwanda
-  </h1>
-
-  <div className="flex gap-6 text-xl">
-    <Link href="/" className="hover:scale-110 transition">🏠</Link>
-    <Link href="/feed" className="hover:scale-110 transition">📰</Link>
-    <Link href="/post" className="hover:scale-110 transition">➕</Link>
-  </div>
-
-</div>
+        <div className="flex gap-6 text-xl">
+          <Link href="/">🏠</Link>
+          <Link href="/feed">📰</Link>
+          <Link href="/post">➕</Link>
+        </div>
+      </div>
 
       <div className="p-6 grid md:grid-cols-3 gap-6">
 
         {/* LEFT */}
         <div className="bg-[#0f172a] p-6 rounded-2xl text-center">
 
-          {/* PHOTO */}
           {photo ? (
             <img
               src={photo}
               className="w-28 h-28 rounded-full mx-auto object-cover mb-3"
             />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-gray-700 mx-auto mb-3 flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full bg-gray-700 mx-auto flex items-center justify-center">
               No Photo
             </div>
           )}
 
-          {/* CHANGE PHOTO */}
           <input
             type="file"
             accept="image/*"
@@ -217,88 +209,70 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-2 gap-3">
 
-            <input
-              disabled={!editing}
-              value={name}
+            <input disabled={!editing} value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Name"
-              className="p-3 rounded bg-[#1e293b]"
-            />
+              className="p-3 rounded bg-[#1e293b]" />
 
-            <input
-              disabled={!editing}
-              value={phone}
+            <input disabled={!editing} value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone"
-              className="p-3 rounded bg-[#1e293b]"
-            />
+              className="p-3 rounded bg-[#1e293b]" />
 
-            <input
-              disabled={!editing}
-              value={location}
+            <input disabled={!editing} value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Location"
-              className="p-3 rounded bg-[#1e293b]"
-            />
+              className="p-3 rounded bg-[#1e293b]" />
 
-            <input
-              disabled={!editing}
-              value={service}
+            <input disabled={!editing} value={service}
               onChange={(e) => setService(e.target.value)}
               placeholder="Service"
-              className="p-3 rounded bg-[#1e293b]"
-            />
+              className="p-3 rounded bg-[#1e293b]" />
 
-            {/* ROLE */}
-            <select
-              disabled={!editing}
+            <select disabled={!editing}
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="p-3 rounded bg-[#1e293b] col-span-2"
-            >
+              className="p-3 rounded bg-[#1e293b] col-span-2">
               <option value="technician">Technician</option>
               <option value="patient">Patient</option>
             </select>
 
           </div>
 
-          <textarea
-            disabled={!editing}
+          <textarea disabled={!editing}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Bio"
-            className="w-full mt-4 p-3 rounded bg-[#1e293b]"
-          />
+            className="w-full mt-4 p-3 rounded bg-[#1e293b]" />
 
           <div className="grid grid-cols-3 gap-3 mt-6">
 
-            <button
-              onClick={saveProfile}
+            <button onClick={saveProfile}
               disabled={saving}
-              className="bg-green-600 p-3 rounded"
-            >
+              className="bg-green-600 p-3 rounded">
               Save
             </button>
 
-            <button
-              onClick={activateVerified}
-              className="bg-blue-600 p-3 rounded"
-            >
+            <button onClick={activateVerified}
+              className="bg-blue-600 p-3 rounded">
               Verified
             </button>
 
-            <Link
-              href="/workers/technicians"
-              className="bg-purple-600 p-3 rounded text-center"
-            >
+            <Link href="/workers/technicians"
+              className="bg-purple-600 p-3 rounded text-center">
               Find Tech
             </Link>
 
           </div>
 
         </div>
-
       </div>
+
+      {/* 🔻 BOTTOM NAV TEXT */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black text-center py-3 text-sm text-gray-300 border-t border-white/10">
+        you have choosen good platform smart market Rwanda. start to day and fly later.
+      </div>
+
     </main>
   );
 }

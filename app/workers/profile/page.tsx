@@ -149,7 +149,7 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-[#07111a] text-white">
 
       {/* 🔝 TOP NAV */}
-      <div className="bg-green800 p-7 flex justify-between items-center">
+      <div className="bg-green600 p-7 flex justify-between items-center">
         <h1 className="font-bold text-lg">Smart Market Rwanda</h1>
 
         <div className="flex gap-3">

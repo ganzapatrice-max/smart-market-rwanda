@@ -22,7 +22,7 @@ export default function ProfilePage() {
   const [service, setService] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("technician");
-  const [photo, setPhoto] = useState("");
+  const [photo, setPhoto] = useState(""); // ✅ no default
   const [verified, setVerified] = useState(false);
 
   const [editing, setEditing] = useState(false);
@@ -53,7 +53,7 @@ export default function ProfilePage() {
         setService(d.service || "");
         setBio(d.bio || "");
         setRole(d.role || "technician");
-        setPhoto(d.photo || "");
+        setPhoto(d.photo || ""); // ✅ only real photo
         setVerified(d.verified || false);
       } else {
         setName(currentUser.email || "");
@@ -84,29 +84,29 @@ export default function ProfilePage() {
           service,
           bio,
           role,
-          photo,
+          photo, // ✅ only saved if exists
           verified,
           updatedAt: serverTimestamp(),
         },
         { merge: true }
       );
 
-      setMsg("✅ Profile saved successfully");
+      setMsg("✅ Profile saved");
       setEditing(false);
-    } catch (error) {
-      setMsg("❌ Failed to save profile");
+    } catch {
+      setMsg("❌ Failed to save");
     }
 
     setSaving(false);
   };
 
   //////////////////////////////////////////////////////
-  // VERIFIED BADGE
+  // VERIFIED
   //////////////////////////////////////////////////////
   const activateVerified = async () => {
     if (!user) return;
 
-    const ok = confirm("Pay 5,000 Frw for Verified Badge?");
+    const ok = confirm("Pay 5,000 Frw?");
     if (!ok) return;
 
     await updateDoc(doc(db, "workers", user.uid), {
@@ -114,7 +114,7 @@ export default function ProfilePage() {
     });
 
     setVerified(true);
-    setMsg("✔ Verified Badge Activated");
+    setMsg("✔ Verified Activated");
   };
 
   //////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setMsg("Uploading photo...");
+    setMsg("Uploading...");
 
     const data = new FormData();
     data.append("file", file);
@@ -140,10 +140,7 @@ export default function ProfilePage() {
 
     const res = await fetch(
       "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
-      {
-        method: "POST",
-        body: data,
-      }
+      { method: "POST", body: data }
     );
 
     const result = await res.json();
@@ -157,243 +154,90 @@ export default function ProfilePage() {
   //////////////////////////////////////////////////////
   return (
     <main className="min-h-screen bg-[#07111a] text-white p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
 
-        {/* TOP */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">
-            Smart Market Rwanda
-          </h1>
+        {/* LEFT */}
+        <div className="bg-[#0f172a] rounded-3xl p-6 text-center">
 
-          <p className="text-green-400 font-semibold">
-            Trusted Platform RW
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-
-          {/* LEFT CARD */}
-          <div className="bg-[#0f172a] rounded-3xl p-6">
-
-            <div className="flex flex-col items-center text-center">
-
-              <img
-                src={photo || "/default-avatar.png"}
-                className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
-              />
-
-              <h2 className="mt-4 text-2xl font-bold">
-                {name || "User"}
-              </h2>
-
-              <p className="text-gray-400 text-sm">
-                {user?.email}
-              </p>
-
-              {verified && role === "technician" && (
-                <div className="mt-3 bg-blue-600 px-4 py-2 rounded-full text-sm">
-                  ✔ Verified Badge
-                </div>
-              )}
-
-              <button
-                onClick={() => setEditing(!editing)}
-                className="mt-4 bg-yellow-500 text-black px-5 py-2 rounded-full font-bold"
-              >
-                ✏ Edit Profile
-              </button>
-            </div>
-
-            <Link
-  href="/post"
-  className="bg-green-600 text-center py-3 rounded-xl font-bold"
->
-  ➕ Create Post
-</Link>
-
-
-  <Link
-    href="/feed"
-    className="bg-blue-600 flex items-center justify-center gap-2 py-3 rounded-xl font-bold hover:bg-blue-700"
-  >
-    📰 <span>Feed</span>
-  </Link>
-
-            {/* QUICK BUTTONS */}
-            <div className="grid grid-cols-2 gap-3 mt-6">
-
-              <Link
-                href="/"
-                className="bg-cyan-600 text-center py-3 rounded-full"
-              >
-                Home
-              </Link>
-
-              <button
-                onClick={logout}
-                className="bg-red-600 py-3 rounded-full"
-              >
-                Logout
-              </button>
-
-              <Link
-                href="/workers/technicians"
-                className="bg-purple-600 text-center py-3 rounded-full"
-              >
-                Technicians
-              </Link>
-
-              <Link
-                href="/workers/patients"
-                className="bg-pink-600 text-center py-3 rounded-full"
-              >
-                Patients
-              </Link>
-
-            </div>
-          </div>
-
-          {/* RIGHT CARD */}
-          <div className="md:col-span-2 bg-[#0f172a] rounded-3xl p-6">
-
-            <h2 className="text-2xl font-bold mb-5">
-              My Profile
-            </h2>
-
-            {msg && (
-              <div className="mb-4 bg-green-700 p-3 rounded-xl">
-                {msg}
-              </div>
-            )}
-
-            {/* FORM */}
-            <div className="grid md:grid-cols-2 gap-4">
-
+          {/* PHOTO */}
+          {photo ? (
+            <img
+              src={photo}
+              className="w-32 h-32 rounded-full object-cover border-4 border-green-500 mx-auto"
+            />
+          ) : (
+            <label className="block bg-gray-700 p-6 rounded-xl cursor-pointer">
+              Upload Photo
               <input
-                disabled={!editing}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full Name"
-                className="p-4 rounded-xl bg-[#1e293b]"
-              />
-
-              <input
-                disabled
-                value={user?.email || ""}
-                className="p-4 rounded-xl bg-[#111827]"
-              />
-
-              <input
-                disabled={!editing}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone"
-                className="p-4 rounded-xl bg-[#1e293b]"
-              />
-
-              <input
-                disabled={!editing}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Location"
-                className="p-4 rounded-xl bg-[#1e293b]"
-              />
-
-              <input
-                disabled={!editing}
-                value={service}
-                onChange={(e) => setService(e.target.value)}
-                placeholder="Service"
-                className="p-4 rounded-xl bg-[#1e293b]"
-              />
-
-              <select
-                disabled={!editing}
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="p-4 rounded-xl bg-[#1e293b]"
-              >
-                <option value="technician">
-                  Technician
-                </option>
-
-                <option value="patient">
-                  Patient
-                </option>
-              </select>
-
-              <input
-                disabled={!editing}
                 type="file"
                 accept="image/*"
                 onChange={uploadPhoto}
-                className="p-4 rounded-xl bg-[#1e293b] md:col-span-2"
+                hidden
               />
+            </label>
+          )}
 
+          <h2 className="mt-4 text-xl font-bold">{name}</h2>
+          <p className="text-gray-400">{user?.email}</p>
+
+          {verified && (
+            <div className="mt-2 bg-blue-600 px-3 py-1 rounded-full text-sm">
+              ✔ Verified
             </div>
+          )}
 
-            <textarea
-              disabled={!editing}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              placeholder="About You"
-              className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
-            />
+          <button
+            onClick={() => setEditing(!editing)}
+            className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-full"
+          >
+            Edit
+          </button>
 
-            {/* BUTTONS */}
-            <div className="grid md:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <Link href="/" className="bg-cyan-600 py-2 rounded-full">Home</Link>
+            <button onClick={logout} className="bg-red-600 py-2 rounded-full">Logout</button>
+            <Link href="/post" className="bg-green-600 py-2 rounded-full">Post</Link>
+            <Link href="/feed" className="bg-blue-600 py-2 rounded-full">Feed</Link>
+          </div>
+        </div>
 
-              <button
-                onClick={saveProfile}
-                disabled={saving}
-                className="bg-green-600 py-4 rounded-full font-bold"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
+        {/* RIGHT */}
+        <div className="md:col-span-2 bg-[#0f172a] rounded-3xl p-6">
 
-              <Link
-                href="/settings"
-                className="bg-orange-500 text-center py-4 rounded-full font-bold"
-              >
-                Settings
-              </Link>
+          {msg && <div className="mb-4 bg-green-700 p-3 rounded">{msg}</div>}
 
-              {role === "technician" && (
-                <>
-                  <button
-                    onClick={activateVerified}
-                    className="bg-blue-600 py-4 rounded-full font-bold"
-                  >
-                    Verified
-                  </button>
+          <div className="grid md:grid-cols-2 gap-4">
+            <input disabled={!editing} value={name} onChange={(e)=>setName(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
+            <input disabled value={user?.email || ""} className="p-3 bg-[#111827] rounded"/>
+            <input disabled={!editing} value={phone} onChange={(e)=>setPhone(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
+            <input disabled={!editing} value={location} onChange={(e)=>setLocation(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
+            <input disabled={!editing} value={service} onChange={(e)=>setService(e.target.value)} className="p-3 bg-[#1e293b] rounded"/>
 
-                  <Link
-                    href="/subscriptions"
-                    className="bg-yellow-500 text-black text-center py-4 rounded-full font-bold"
-                  >
-                    Subscription
-                  </Link>
-                </>
-              )}
+            <select disabled={!editing} value={role} onChange={(e)=>setRole(e.target.value)} className="p-3 bg-[#1e293b] rounded">
+              <option value="technician">Technician</option>
+              <option value="patient">Patient</option>
+            </select>
+          </div>
 
-              {role === "patient" && (
-                <>
-                  <Link
-                    href="/workers/technicians"
-                    className="bg-purple-600 text-center py-4 rounded-full font-bold"
-                  >
-                    Find Tech
-                  </Link>
+          <textarea
+            disabled={!editing}
+            value={bio}
+            onChange={(e)=>setBio(e.target.value)}
+            className="w-full mt-4 p-3 bg-[#1e293b] rounded"
+          />
 
-                  <div className="bg-gray-700 text-center py-4 rounded-full font-bold">
-                    Patient
-                  </div>
-                </>
-              )}
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <button onClick={saveProfile} className="bg-green-600 py-3 rounded">
+              {saving ? "Saving..." : "Save"}
+            </button>
 
-            </div>
+            <button onClick={activateVerified} className="bg-blue-600 py-3 rounded">
+              Verified
+            </button>
 
+            <Link href="/settings" className="bg-orange-500 text-center py-3 rounded">
+              Settings
+            </Link>
           </div>
 
         </div>

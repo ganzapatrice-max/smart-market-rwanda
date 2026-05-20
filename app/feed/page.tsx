@@ -19,15 +19,20 @@ import {
   increment,
   addDoc,
   serverTimestamp,
+  where,
+  Timestamp,
 } from "firebase/firestore";
 
 export default function FeedPage() {
   const router = useRouter();
 
   const [posts, setPosts] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [usersMap, setUsersMap] = useState<any>({});
   const [autoPlay, setAutoPlay] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
@@ -40,29 +45,43 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // POSTS (REALTIME)
+  // POSTS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(q, (snap) => {
-      setPosts(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-      );
+      setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
 
     return () => unsub();
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS REALTIME (🔥 FIXED: workers collection)
+  // STORIES (24 HOURS ONLY)
   //////////////////////////////////////////////////////
   useEffect(() => {
-    if (!posts.length) return;
+    const yesterday = Timestamp.fromMillis(
+      Date.now() - 24 * 60 * 60 * 1000
+    );
 
+    const q = query(
+      collection(db, "posts"),
+      where("type", "==", "video"),
+      where("createdAt", ">", yesterday)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setStories(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsub();
+  }, []);
+
+  //////////////////////////////////////////////////////
+  // USERS REALTIME
+  //////////////////////////////////////////////////////
+  useEffect(() => {
     const unsubs: any[] = [];
 
     posts.forEach((post) => {
@@ -84,7 +103,7 @@ export default function FeedPage() {
   }, [posts]);
 
   //////////////////////////////////////////////////////
-  // AUTO PLAY
+  // AUTO PLAY + SOUND
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!autoPlay) return;
@@ -95,6 +114,7 @@ export default function FeedPage() {
           const video = entry.target as HTMLVideoElement;
 
           if (entry.isIntersecting) {
+            video.muted = false; // 🔥 SOUND ON
             video.play().catch(() => {});
           } else {
             video.pause();
@@ -104,15 +124,21 @@ export default function FeedPage() {
       { threshold: 0.7 }
     );
 
-    videoRefs.current.forEach((video) => {
-      if (video) observer.observe(video);
-    });
+    videoRefs.current.forEach((v) => v && observer.observe(v));
 
     return () => observer.disconnect();
   }, [posts, autoPlay]);
 
   //////////////////////////////////////////////////////
-  // LIKE / DELETE / SHARE
+  // HELPERS
+  //////////////////////////////////////////////////////
+  const formatTime = (ts: any) => {
+    if (!ts?.seconds) return "";
+    return new Date(ts.seconds * 1000).toLocaleString();
+  };
+
+  //////////////////////////////////////////////////////
+  // ACTIONS
   //////////////////////////////////////////////////////
   const likePost = async (id: string) => {
     await updateDoc(doc(db, "posts", id), {
@@ -120,174 +146,186 @@ export default function FeedPage() {
     });
   };
 
-  const deletePost = async (id: string) => {
-    if (!confirm("Delete this post?")) return;
-    await deleteDoc(doc(db, "posts", id));
-  };
-
   const sharePost = async (post: any) => {
-    if (!user) return;
-
     await updateDoc(doc(db, "posts", post.id), {
       shares: increment(1),
     });
-
-    if (post.userId !== user.uid) {
-      await addDoc(collection(db, "notifications"), {
-        toUserId: post.userId,
-        fromUserId: user.uid,
-        type: "share",
-        postId: post.id,
-        createdAt: serverTimestamp(),
-        read: false,
-      });
-    }
   };
+
+  //////////////////////////////////////////////////////
+  // FILTER + SEARCH
+  //////////////////////////////////////////////////////
+  const filteredPosts = posts.filter((p) => {
+    const userData = usersMap[p.userId] || {};
+
+    const matchFilter = filter === "all" || p.type === filter;
+
+    const matchSearch =
+      p.text?.toLowerCase().includes(search.toLowerCase()) ||
+      userData?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      userData?.location?.toLowerCase().includes(search.toLowerCase());
+
+    return matchFilter && matchSearch;
+  });
 
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="bg-gray-100 min-h-screen p-3 space-y-4">
+    <main className="bg-gray-100 min-h-screen">
 
-      {/* 🔝 TOP */}
-      <div className="flex justify-between items-center bg-white p-3 rounded-xl">
-        <h1 className="font-bold text-black">Smart Market Rwanda</h1>
+      {/* 🔝 STICKY HEADER */}
+      <div className="sticky top-0 z-50 bg-white p-3 space-y-3 shadow">
 
-        <button
-          onClick={() => setAutoPlay(!autoPlay)}
-          className="bg-blue-600 text-white px-4 py-1 rounded-full"
-        >
-          {autoPlay ? "AutoPlay ON" : "AutoPlay OFF"}
-        </button>
-      </div>
+        {/* TITLE + FILTER */}
+        <div className="flex justify-between items-center">
+          <h1 className="font-bold text-black">Smart Market Rwanda</h1>
 
-      {/* 🔥 STORIES / REELS */}
-      <div className="flex gap-3 overflow-x-auto">
-
-        {/* CREATE */}
-        <div className="min-w-[110px] h-[180px] bg-white rounded-xl flex items-center justify-center text-black font-bold cursor-pointer">
-          +
+          <button
+            onClick={() => setAutoPlay(!autoPlay)}
+            className="bg-blue-600 text-white px-3 py-1 rounded-full"
+          >
+            {autoPlay ? "Sound ON" : "Sound OFF"}
+          </button>
         </div>
 
-        {posts
-          .filter((p) => p.type === "video")
-          .map((post) => {
-            const userData = usersMap[post.userId];
+        {/* FILTER BUTTONS */}
+        <div className="flex gap-2 overflow-x-auto">
+          {["all", "video", "image", "text"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full ${
+                filter === f ? "bg-blue-600 text-white" : "bg-gray-200"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* SEARCH */}
+        <input
+          placeholder="Search by name, location, post..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full p-2 bg-gray-100 rounded"
+        />
+
+        {/* WHAT'S ON YOUR MIND */}
+        <div
+          onClick={() => router.push("/post")}
+          className="flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
+        >
+          <img
+            src={
+              (user && usersMap[user?.uid]?.photo) ||
+              "/default-avatar.png"
+            }
+            className="w-8 h-8 rounded-full"
+          />
+          <p className="text-gray-500">What’s on your mind?</p>
+        </div>
+
+        {/* 🔥 STORIES (DO NOT SCROLL WITH POSTS) */}
+        <div className="flex gap-3 overflow-x-auto">
+          {stories.map((s) => {
+            const u = usersMap[s.userId];
 
             return (
               <div
-                key={post.id}
-                onClick={() => router.push(`/reel/${post.id}`)}
-                className="min-w-[110px] h-[180px] relative rounded-xl overflow-hidden cursor-pointer"
+                key={s.id}
+                onClick={() => router.push(`/reel/${s.id}`)}
+                className="min-w-[110px] h-[180px] rounded-xl overflow-hidden relative cursor-pointer"
               >
                 <video
-                  src={post.media}
+                  src={s.media}
                   className="w-full h-full object-cover"
                   muted
                 />
 
-                {/* PROFILE */}
                 <img
-                  src={
-                    userData?.photo ||
-                    post.photo ||
-                    "/default-avatar.png"
-                  }
+                  src={u?.photo || "/default-avatar.png"}
                   className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-blue-500"
                 />
 
-                {/* NAME */}
-                <p className="absolute bottom-2 left-2 right-2 text-white text-xs font-semibold">
-                  {userData?.name || post.name || "User"}
+                <p className="absolute bottom-2 left-2 text-white text-xs">
+                  {u?.name || "User"}
                 </p>
               </div>
             );
           })}
+        </div>
       </div>
 
       {/* POSTS */}
-      {posts.map((post, i) => {
-        const userData = usersMap[post.userId];
+      <div className="p-3 space-y-4">
+        {filteredPosts.map((post, i) => {
+          const u = usersMap[post.userId];
 
-        return (
-          <div key={post.id} className="bg-white p-4 rounded-xl">
+          return (
+            <div key={post.id} className="bg-white p-4 rounded-xl">
 
-            {/* HEADER */}
-            <div className="flex justify-between">
-
-              <div className="flex gap-2 items-center">
-                <img
-                  src={
-                    userData?.photo ||
-                    post.photo ||
-                    "/default-avatar.png"
-                  }
-                  className="w-10 h-10 rounded-full border-2 border-blue-500"
-                />
-
-                <div>
-                  <p className="font-semibold text-black text-sm">
-                    {userData?.name || post.name || "User"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {post.type}
-                  </p>
+              {/* HEADER */}
+              <div className="flex justify-between">
+                <div
+                  onClick={() => router.push(`/profile/${post.userId}`)}
+                  className="flex gap-2 items-center cursor-pointer"
+                >
+                  <img
+                    src={u?.photo || "/default-avatar.png"}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <div>
+                    <p className="font-semibold text-black text-sm">
+                      {u?.name || "User"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatTime(post.createdAt)}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2">
                 <FollowButton targetUserId={post.userId} />
-
-                {user?.uid === post.userId && (
-                  <button
-                    onClick={() => deletePost(post.id)}
-                    className="text-red-500"
-                  >
-                    🗑
-                  </button>
-                )}
               </div>
+
+              {/* TEXT */}
+              {post.text && (
+                <p className="my-3 text-black">{post.text}</p>
+              )}
+
+              {/* MEDIA */}
+              {post.media &&
+                (post.type === "video" ? (
+                  <video
+                    ref={(el) => (videoRefs.current[i] = el)}
+                    src={post.media}
+                    controls={!autoPlay}
+                    muted={!autoPlay}
+                    loop
+                    className="rounded w-full"
+                  />
+                ) : (
+                  <img src={post.media} className="rounded w-full" />
+                ))}
+
+              {/* ACTIONS */}
+              <div className="flex justify-around mt-3 text-sm">
+                <button onClick={() => likePost(post.id)}>
+                  👍 {post.likes || 0}
+                </button>
+                <button>💬 {post.comments || 0}</button>
+                <button onClick={() => sharePost(post)}>
+                  ↗ {post.shares || 0}
+                </button>
+                <span>👁 {post.views || 0}</span>
+              </div>
+
+              <Comments postId={post.id} postOwnerId={post.userId} />
             </div>
-
-            {/* TEXT */}
-            {post.text && (
-              <p className="my-3 text-black">{post.text}</p>
-            )}
-
-            {/* MEDIA */}
-            {post.media && (
-              post.type === "video" ? (
-                <video
-                  ref={(el) => {
-                    videoRefs.current[i] = el;
-                  }}
-                  src={post.media}
-                  controls={!autoPlay}
-                  muted
-                  loop
-                  className="rounded w-full"
-                />
-              ) : (
-                <img src={post.media} className="rounded w-full" />
-              )
-            )}
-
-            {/* ACTIONS */}
-            <div className="flex justify-around mt-3 text-sm">
-              <button onClick={() => likePost(post.id)}>
-                👍 {post.likes || 0}
-              </button>
-              <button>💬</button>
-              <button onClick={() => sharePost(post)}>
-                ↗ {post.shares || 0}
-              </button>
-            </div>
-
-            <Comments postId={post.id} postOwnerId={post.userId} />
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </main>
   );
 }

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { auth, db } from "../../lib/firebase";
-
 import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
@@ -18,19 +17,20 @@ export default function PostPage() {
 
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState("");
-  const [role, setRole] = useState("patient");
+  const [role, setRole] = useState("");
 
   const [text, setText] = useState("");
   const [media, setMedia] = useState("");
-  const [type, setType] = useState("normal");
+  const [type, setType] = useState("text");
 
-  const [autoPlay, setAutoPlay] = useState(true);
+  const [isStory, setIsStory] = useState(false);
+  const [allowSound, setAllowSound] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
   //////////////////////////////////////////////////////
-  // REAL-TIME USER PROFILE ✅ FIXED
+  // USER REALTIME
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -41,15 +41,13 @@ export default function PostPage() {
 
       setUser(currentUser);
 
-      // ✅ REAL-TIME LISTENER
       const ref = doc(db, "workers", currentUser.uid);
 
       const unsubProfile = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-
           setName(data?.name || "");
-          setRole(data?.role || "patient");
+          setRole(data?.role || "");
           setPhoto(data?.photo || "");
         }
       });
@@ -61,7 +59,7 @@ export default function PostPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // UPLOAD FILE
+  // UPLOAD
   //////////////////////////////////////////////////////
   const uploadFile = async (e: any) => {
     const file = e.target.files?.[0];
@@ -84,7 +82,7 @@ export default function PostPage() {
     const result = await res.json();
 
     setMedia(result.secure_url);
-    setMsg("✅ Upload done");
+    setMsg("✅ Uploaded");
   };
 
   //////////////////////////////////////////////////////
@@ -100,33 +98,40 @@ export default function PostPage() {
 
       await addDoc(collection(db, "posts"), {
         userId: user.uid,
-        email: user.email,
-
-        // ✅ ALWAYS CURRENT DATA
-        name: name,
-        photo: photo,
-        role: role,
+        name,
+        photo,
+        role,
 
         text,
         media,
         type,
 
-        autoPlay, // ✅ SAVE AUTOPLAY PREFERENCE
+        // ✅ STORIES SYSTEM
+        isStory,
+        expiresAt: isStory
+          ? new Date(Date.now() + 24 * 60 * 60 * 1000)
+          : null,
 
+        // ✅ SOUND ENABLED
+        allowSound,
+
+        // ✅ REAL COUNTS
         likes: 0,
         comments: 0,
         shares: 0,
+        views: 0,
 
         createdAt: serverTimestamp(),
       });
 
       setText("");
       setMedia("");
-      setType("normal");
+      setType("text");
+      setIsStory(false);
 
       setMsg("✅ Posted");
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       setMsg("❌ Failed");
     }
 
@@ -137,65 +142,55 @@ export default function PostPage() {
   // UI
   //////////////////////////////////////////////////////
   return (
-    <main className="min-h-screen bg-[#07111a] text-white p-6">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-2xl mx-auto space-y-4">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Create Post</h1>
-
-          <Link href="/feed" className="bg-green-600 px-5 py-3 rounded-full">
+        <div className="flex justify-between items-center bg-white p-3 rounded-xl sticky top-0 z-10">
+          <h1 className="font-bold text-black">Create Post</h1>
+          <Link href="/feed" className="bg-blue-600 text-white px-4 py-2 rounded-full">
             Feed
           </Link>
         </div>
 
-        <div className="bg-[#0f172a] rounded-3xl p-6">
+        {/* CARD */}
+        <div className="bg-white p-4 rounded-xl space-y-4">
 
           {/* USER */}
-          <div className="flex items-center gap-4 mb-6">
-            {photo ? (
-              <img
-                src={photo}
-                className="w-14 h-14 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-gray-600 flex items-center justify-center">
-                👤
-              </div>
-            )}
-
+          <div className="flex gap-3 items-center">
+            <img
+              src={photo || "/default-avatar.png"}
+              className="w-12 h-12 rounded-full object-cover"
+            />
             <div>
-              <h2 className="font-bold text-lg">{name || "..."}</h2>
-              <p className="text-gray-400 text-sm">
-                {user?.email} • {role}
-              </p>
+              <p className="font-semibold text-black">{name}</p>
+              <p className="text-xs text-gray-500">{role}</p>
             </div>
           </div>
 
-          {msg && (
-            <div className="mb-4 bg-green-700 p-3 rounded-xl">{msg}</div>
-          )}
+          {msg && <div className="text-green-600">{msg}</div>}
 
-          {/* TYPE */}
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full p-4 rounded-xl bg-[#1e293b] mb-4"
-          >
-            <option value="normal">Text</option>
-            <option value="service">Service</option>
-            <option value="product">Product</option>
-            <option value="job">Job</option>
-            <option value="video">Video</option>
-          </select>
+          {/* TYPE SELECT (TOP NAV STYLE) */}
+          <div className="flex gap-2 overflow-x-auto">
+            {["text", "image", "video"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  type === t ? "bg-blue-600 text-white" : "bg-gray-200"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
           {/* TEXT */}
           <textarea
-            rows={5}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Write something..."
-            className="w-full p-4 rounded-xl bg-[#1e293b]"
+            placeholder="What's on your mind?"
+            className="w-full p-3 bg-gray-100 rounded-lg text-black"
           />
 
           {/* FILE */}
@@ -203,52 +198,56 @@ export default function PostPage() {
             type="file"
             accept="image/*,video/*"
             onChange={uploadFile}
-            className="w-full mt-4 p-4 rounded-xl bg-[#1e293b]"
+            className="w-full"
           />
 
           {/* PREVIEW */}
           {media && (
-            <div className="mt-4">
+            <div>
               {media.includes(".mp4") ? (
                 <video
                   src={media}
-                  controls={!autoPlay}
-                  autoPlay={autoPlay}
-                  muted
-                  loop
-                  className="rounded-2xl w-full"
+                  autoPlay
+                  controls
+                  muted={!allowSound}
+                  className="rounded-lg w-full"
                 />
               ) : (
-                <img src={media} className="rounded-2xl w-full" />
+                <img src={media} className="rounded-lg w-full" />
               )}
             </div>
           )}
 
-          {/* AUTOPLAY TOGGLE */}
-          <button
-            onClick={() => setAutoPlay(!autoPlay)}
-            className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded"
-          >
-            {autoPlay ? "Auto Play ON" : "Auto Play OFF"}
-          </button>
+          {/* OPTIONS */}
+          <div className="flex flex-wrap gap-3">
 
-          {/* ACTIONS */}
-          <div className="grid grid-cols-2 gap-4 mt-6">
+            {/* STORY */}
             <button
-              onClick={createPost}
-              disabled={loading}
-              className="bg-blue-600 py-4 rounded-full font-bold"
+              onClick={() => setIsStory(!isStory)}
+              className={`px-3 py-1 rounded-full text-sm ${
+                isStory ? "bg-purple-600 text-white" : "bg-gray-200"
+              }`}
             >
-              {loading ? "Posting..." : "Publish"}
+              {isStory ? "Story (24h)" : "Post"}
             </button>
 
-            <Link
-              href="/feed"
-              className="bg-purple-600 text-center py-4 rounded-full font-bold"
+            {/* SOUND */}
+            <button
+              onClick={() => setAllowSound(!allowSound)}
+              className="px-3 py-1 bg-yellow-400 rounded-full text-sm"
             >
-              Open Feed
-            </Link>
+              {allowSound ? "Sound ON 🔊" : "Muted 🔇"}
+            </button>
           </div>
+
+          {/* ACTION */}
+          <button
+            onClick={createPost}
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-full font-bold"
+          >
+            {loading ? "Posting..." : "Publish"}
+          </button>
 
         </div>
       </div>

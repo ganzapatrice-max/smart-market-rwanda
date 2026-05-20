@@ -172,10 +172,8 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   return (
     <main className="bg-gray-100 min-h-screen">
-
       {/* HEADER */}
       <div className="sticky top-0 bg-white p-3 space-y-3 z-50 shadow">
-
         <div className="flex justify-between">
           <h1 className="font-bold text-black">Smart Market</h1>
 
@@ -256,36 +254,14 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {/* POSTS (VERTICAL ONLY) */}
+      {/* POSTS */}
       <div className="p-3 space-y-4">
         {filteredPosts.map((post, i) => {
           const u = usersMap[post.userId];
 
           return (
             <div key={post.id} className="bg-white p-4 rounded-xl">
-
-              {/* HEADER */}
-              <div className="flex justify-between">
-                <div
-                  onClick={() => router.push(`/profile/${post.userId}`)}
-                  className="flex gap-2 items-center cursor-pointer"
-                >
-                  <img
-                    src={u?.photo || "/default-avatar.png"}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <p className="font-semibold text-black text-sm">
-                      {u?.name || "User"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatTime(post.createdAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <FollowButton targetUserId={post.userId} />
-              </div>
+              <FollowButton targetUserId={post.userId} />
 
               {/* TEXT */}
               {post.text && (

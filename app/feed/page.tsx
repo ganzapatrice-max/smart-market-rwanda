@@ -15,10 +15,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  deleteDoc,
   increment,
-  addDoc,
-  serverTimestamp,
   where,
   Timestamp,
 } from "firebase/firestore";
@@ -58,7 +55,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // STORIES (24 HOURS ONLY)
+  // STORIES (24 HOURS)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const yesterday = Timestamp.fromMillis(
@@ -67,7 +64,7 @@ export default function FeedPage() {
 
     const q = query(
       collection(db, "posts"),
-      where("type", "==", "video"),
+      where("isStory", "==", true),
       where("createdAt", ">", yesterday)
     );
 
@@ -79,7 +76,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS REALTIME
+  // USERS
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsubs: any[] = [];
@@ -114,7 +111,7 @@ export default function FeedPage() {
           const video = entry.target as HTMLVideoElement;
 
           if (entry.isIntersecting) {
-            video.muted = false; // 🔥 SOUND ON
+            video.muted = false;
             video.play().catch(() => {});
           } else {
             video.pause();
@@ -153,9 +150,11 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER + SEARCH
+  // FILTER
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((p) => {
+    if (p.isStory) return false; // ❌ do not show stories in feed
+
     const userData = usersMap[p.userId] || {};
 
     const matchFilter = filter === "all" || p.type === filter;
@@ -174,12 +173,11 @@ export default function FeedPage() {
   return (
     <main className="bg-gray-100 min-h-screen">
 
-      {/* 🔝 STICKY HEADER */}
-      <div className="sticky top-0 z-50 bg-white p-3 space-y-3 shadow">
+      {/* HEADER */}
+      <div className="sticky top-0 bg-white p-3 space-y-3 z-50 shadow">
 
-        {/* TITLE + FILTER */}
-        <div className="flex justify-between items-center">
-          <h1 className="font-bold text-black">Smart Market Rwanda</h1>
+        <div className="flex justify-between">
+          <h1 className="font-bold text-black">Smart Market</h1>
 
           <button
             onClick={() => setAutoPlay(!autoPlay)}
@@ -189,7 +187,7 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* FILTER BUTTONS */}
+        {/* FILTER */}
         <div className="flex gap-2 overflow-x-auto">
           {["all", "video", "image", "text"].map((f) => (
             <button
@@ -212,7 +210,7 @@ export default function FeedPage() {
           className="w-full p-2 bg-gray-100 rounded"
         />
 
-        {/* WHAT'S ON YOUR MIND */}
+        {/* CREATE */}
         <div
           onClick={() => router.push("/post")}
           className="flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
@@ -227,7 +225,7 @@ export default function FeedPage() {
           <p className="text-gray-500">What’s on your mind?</p>
         </div>
 
-        {/* 🔥 STORIES (DO NOT SCROLL WITH POSTS) */}
+        {/* STORIES */}
         <div className="flex gap-3 overflow-x-auto">
           {stories.map((s) => {
             const u = usersMap[s.userId];
@@ -298,7 +296,9 @@ export default function FeedPage() {
               {post.media &&
                 (post.type === "video" ? (
                   <video
-                    ref={(el) => (videoRefs.current[i] = el)}
+                    ref={(el) => {
+                      videoRefs.current[i] = el;
+                    }}
                     src={post.media}
                     controls={!autoPlay}
                     muted={!autoPlay}

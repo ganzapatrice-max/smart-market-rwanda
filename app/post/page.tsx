@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 import { auth, db } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -15,9 +14,9 @@ import {
 } from "firebase/firestore";
 
 export default function PostPage() {
-  const searchParams = useSearchParams();
-  const isStoryMode = searchParams.get("story") === "true";
-
+  //////////////////////////////////////////////////////
+  // STATE
+  //////////////////////////////////////////////////////
   const [user, setUser] = useState<any>(null);
 
   const [name, setName] = useState("");
@@ -28,13 +27,21 @@ export default function PostPage() {
   const [media, setMedia] = useState("");
   const [type, setType] = useState("text");
 
-  // 🔥 auto enable story if from stories
-  const [isStory, setIsStory] = useState(isStoryMode);
-
+  const [isStory, setIsStory] = useState(false);
   const [allowSound, setAllowSound] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+
+  //////////////////////////////////////////////////////
+  // ✅ FIX: READ URL PARAM (NO useSearchParams)
+  //////////////////////////////////////////////////////
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("story") === "true") {
+      setIsStory(true);
+    }
+  }, []);
 
   //////////////////////////////////////////////////////
   // USER REALTIME
@@ -90,7 +97,7 @@ export default function PostPage() {
 
     setMedia(result.secure_url);
 
-    // 🔥 auto detect type
+    // ✅ auto detect type
     if (result.secure_url.includes(".mp4")) {
       setType("video");
     } else {
@@ -101,7 +108,7 @@ export default function PostPage() {
   };
 
   //////////////////////////////////////////////////////
-  // CREATE POST
+  // CREATE POST / STORY
   //////////////////////////////////////////////////////
   const createPost = async () => {
     if (!text && !media) return;
@@ -127,10 +134,8 @@ export default function PostPage() {
           ? new Date(Date.now() + 24 * 60 * 60 * 1000)
           : null,
 
-        // 🔥 SOUND
         allowSound,
 
-        // 🔥 COUNTS
         likes: 0,
         comments: 0,
         shares: 0,
@@ -139,6 +144,7 @@ export default function PostPage() {
         createdAt: serverTimestamp(),
       });
 
+      // reset
       setText("");
       setMedia("");
       setType("text");
@@ -191,7 +197,7 @@ export default function PostPage() {
 
           {msg && <div className="text-green-600">{msg}</div>}
 
-          {/* TYPE FILTER */}
+          {/* TYPE (hidden in story mode) */}
           {!isStory && (
             <div className="flex gap-2 overflow-x-auto">
               {["text", "image", "video"].map((t) => (

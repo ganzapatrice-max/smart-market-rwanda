@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+
 import { auth, db } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -13,6 +15,9 @@ import {
 } from "firebase/firestore";
 
 export default function PostPage() {
+  const searchParams = useSearchParams();
+  const isStoryMode = searchParams.get("story") === "true";
+
   const [user, setUser] = useState<any>(null);
 
   const [name, setName] = useState("");
@@ -23,7 +28,9 @@ export default function PostPage() {
   const [media, setMedia] = useState("");
   const [type, setType] = useState("text");
 
-  const [isStory, setIsStory] = useState(false);
+  // 🔥 auto enable story if from stories
+  const [isStory, setIsStory] = useState(isStoryMode);
+
   const [allowSound, setAllowSound] = useState(true);
 
   const [loading, setLoading] = useState(false);
@@ -82,6 +89,14 @@ export default function PostPage() {
     const result = await res.json();
 
     setMedia(result.secure_url);
+
+    // 🔥 auto detect type
+    if (result.secure_url.includes(".mp4")) {
+      setType("video");
+    } else {
+      setType("image");
+    }
+
     setMsg("✅ Uploaded");
   };
 
@@ -106,16 +121,16 @@ export default function PostPage() {
         media,
         type,
 
-        // ✅ STORIES SYSTEM
+        // 🔥 STORY SYSTEM
         isStory,
         expiresAt: isStory
           ? new Date(Date.now() + 24 * 60 * 60 * 1000)
           : null,
 
-        // ✅ SOUND ENABLED
+        // 🔥 SOUND
         allowSound,
 
-        // ✅ REAL COUNTS
+        // 🔥 COUNTS
         likes: 0,
         comments: 0,
         shares: 0,
@@ -147,8 +162,14 @@ export default function PostPage() {
 
         {/* HEADER */}
         <div className="flex justify-between items-center bg-white p-3 rounded-xl sticky top-0 z-10">
-          <h1 className="font-bold text-black">Create Post</h1>
-          <Link href="/feed" className="bg-blue-600 text-white px-4 py-2 rounded-full">
+          <h1 className="font-bold text-black">
+            {isStory ? "Create Story" : "Create Post"}
+          </h1>
+
+          <Link
+            href="/feed"
+            className="bg-blue-600 text-white px-4 py-2 rounded-full"
+          >
             Feed
           </Link>
         </div>
@@ -170,26 +191,30 @@ export default function PostPage() {
 
           {msg && <div className="text-green-600">{msg}</div>}
 
-          {/* TYPE SELECT (TOP NAV STYLE) */}
-          <div className="flex gap-2 overflow-x-auto">
-            {["text", "image", "video"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setType(t)}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  type === t ? "bg-blue-600 text-white" : "bg-gray-200"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          {/* TYPE FILTER */}
+          {!isStory && (
+            <div className="flex gap-2 overflow-x-auto">
+              {["text", "image", "video"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setType(t)}
+                  className={`px-3 py-1 rounded-full text-sm ${
+                    type === t ? "bg-blue-600 text-white" : "bg-gray-200"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* TEXT */}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder={
+              isStory ? "Create a story..." : "What's on your mind?"
+            }
             className="w-full p-3 bg-gray-100 rounded-lg text-black"
           />
 
@@ -221,7 +246,7 @@ export default function PostPage() {
           {/* OPTIONS */}
           <div className="flex flex-wrap gap-3">
 
-            {/* STORY */}
+            {/* STORY TOGGLE */}
             <button
               onClick={() => setIsStory(!isStory)}
               className={`px-3 py-1 rounded-full text-sm ${
@@ -246,7 +271,7 @@ export default function PostPage() {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-full font-bold"
           >
-            {loading ? "Posting..." : "Publish"}
+            {loading ? "Posting..." : isStory ? "Publish Story" : "Publish"}
           </button>
 
         </div>

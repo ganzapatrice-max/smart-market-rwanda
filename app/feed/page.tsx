@@ -42,7 +42,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // POSTS
+  // POSTS (ALL)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -55,7 +55,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // STORIES (24 HOURS)
+  // STORIES (ONLY isStory + 24H)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const yesterday = Timestamp.fromMillis(
@@ -65,7 +65,8 @@ export default function FeedPage() {
     const q = query(
       collection(db, "posts"),
       where("isStory", "==", true),
-      where("createdAt", ">", yesterday)
+      where("createdAt", ">", yesterday),
+      orderBy("createdAt", "desc")
     );
 
     const unsub = onSnapshot(q, (snap) => {
@@ -100,7 +101,7 @@ export default function FeedPage() {
   }, [posts]);
 
   //////////////////////////////////////////////////////
-  // AUTO PLAY + SOUND
+  // AUTOPLAY + SOUND
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!autoPlay) return;
@@ -150,19 +151,18 @@ export default function FeedPage() {
   };
 
   //////////////////////////////////////////////////////
-  // FILTER
+  // FILTER (NO STORIES)
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((p) => {
-    if (p.isStory) return false; // ❌ do not show stories in feed
+    if (p.isStory) return false;
 
-    const userData = usersMap[p.userId] || {};
+    const u = usersMap[p.userId] || {};
 
     const matchFilter = filter === "all" || p.type === filter;
 
     const matchSearch =
       p.text?.toLowerCase().includes(search.toLowerCase()) ||
-      userData?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      userData?.location?.toLowerCase().includes(search.toLowerCase());
+      u?.name?.toLowerCase().includes(search.toLowerCase());
 
     return matchFilter && matchSearch;
   });
@@ -204,28 +204,13 @@ export default function FeedPage() {
 
         {/* SEARCH */}
         <input
-          placeholder="Search by name, location, post..."
+          placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full p-2 bg-gray-100 rounded"
         />
 
-        {/* CREATE */}
-        <div
-          onClick={() => router.push("/post")}
-          className="flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
-        >
-          <img
-            src={
-              (user && usersMap[user?.uid]?.photo) ||
-              "/default-avatar.png"
-            }
-            className="w-8 h-8 rounded-full"
-          />
-          <p className="text-gray-500">What’s on your mind?</p>
-        </div>
-
-        {/* STORIES */}
+        {/* 🔥 STORIES FIRST (ABOVE INPUT) */}
         <div className="flex gap-3 overflow-x-auto">
           {stories.map((s) => {
             const u = usersMap[s.userId];
@@ -254,9 +239,24 @@ export default function FeedPage() {
             );
           })}
         </div>
+
+        {/* WHAT'S ON YOUR MIND */}
+        <div
+          onClick={() => router.push("/post")}
+          className="flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
+        >
+          <img
+            src={
+              (user && usersMap[user?.uid]?.photo) ||
+              "/default-avatar.png"
+            }
+            className="w-8 h-8 rounded-full"
+          />
+          <p className="text-gray-500">What’s on your mind?</p>
+        </div>
       </div>
 
-      {/* POSTS */}
+      {/* POSTS (VERTICAL ONLY) */}
       <div className="p-3 space-y-4">
         {filteredPosts.map((post, i) => {
           const u = usersMap[post.userId];

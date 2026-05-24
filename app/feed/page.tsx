@@ -18,6 +18,7 @@ import {
   increment,
   where,
   Timestamp,
+  limit,
 } from "firebase/firestore";
 
 export default function FeedPage() {
@@ -27,7 +28,7 @@ export default function FeedPage() {
   const [stories, setStories] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [usersMap, setUsersMap] = useState<any>({});
-  const [autoPlay, setAutoPlay] = useState(true);
+  const [autoPlay, setAutoPlay] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -42,10 +43,14 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // POSTS (ALL)
+  // POSTS (LIMITED)
   //////////////////////////////////////////////////////
   useEffect(() => {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "posts"),
+      orderBy("createdAt", "desc"),
+      limit(10)
+    );
 
     const unsub = onSnapshot(q, (snap) => {
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -55,7 +60,7 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // STORIES (ONLY isStory + 24H)
+  // STORIES (FAST 🔥)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const yesterday = Timestamp.fromMillis(
@@ -66,7 +71,8 @@ export default function FeedPage() {
       collection(db, "posts"),
       where("isStory", "==", true),
       where("createdAt", ">", yesterday),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(10) // 🚀 IMPORTANT
     );
 
     const unsub = onSnapshot(q, (snap) => {
@@ -77,18 +83,18 @@ export default function FeedPage() {
   }, []);
 
   //////////////////////////////////////////////////////
-  // USERS
+  // USERS (ONLY STORIES 🔥)
   //////////////////////////////////////////////////////
   useEffect(() => {
     const unsubs: any[] = [];
 
-    posts.forEach((post) => {
-      if (!usersMap[post.userId]) {
-        const unsub = onSnapshot(doc(db, "workers", post.userId), (snap) => {
+    stories.forEach((s) => {
+      if (!usersMap[s.userId]) {
+        const unsub = onSnapshot(doc(db, "workers", s.userId), (snap) => {
           if (snap.exists()) {
             setUsersMap((prev: any) => ({
               ...prev,
-              [post.userId]: snap.data(),
+              [s.userId]: snap.data(),
             }));
           }
         });
@@ -98,10 +104,10 @@ export default function FeedPage() {
     });
 
     return () => unsubs.forEach((u) => u());
-  }, [posts]);
+  }, [stories, usersMap]);
 
   //////////////////////////////////////////////////////
-  // AUTOPLAY + SOUND
+  // AUTOPLAY
   //////////////////////////////////////////////////////
   useEffect(() => {
     if (!autoPlay) return;
@@ -112,7 +118,6 @@ export default function FeedPage() {
           const video = entry.target as HTMLVideoElement;
 
           if (entry.isIntersecting) {
-            video.muted = false;
             video.play().catch(() => {});
           } else {
             video.pause();
@@ -125,222 +130,144 @@ export default function FeedPage() {
     videoRefs.current.forEach((v) => v && observer.observe(v));
 
     return () => observer.disconnect();
-  }, [posts, autoPlay]);
+  }, [autoPlay]);
 
   //////////////////////////////////////////////////////
-  // HELPERS
-  //////////////////////////////////////////////////////
-  const formatTime = (ts: any) => {
-    if (!ts?.seconds) return "";
-    return new Date(ts.seconds * 1000).toLocaleString();
-  };
-
-  //////////////////////////////////////////////////////
-  // ACTIONS
-  //////////////////////////////////////////////////////
-  const likePost = async (id: string) => {
-    await updateDoc(doc(db, "posts", id), {
-      likes: increment(1),
-    });
-  };
-
-  const sharePost = async (post: any) => {
-    await updateDoc(doc(db, "posts", post.id), {
-      shares: increment(1),
-    });
-  };
-
-  //////////////////////////////////////////////////////
-  // FILTER (NO STORIES)
+  // FILTER
   //////////////////////////////////////////////////////
   const filteredPosts = posts.filter((p) => {
     if (p.isStory) return false;
 
     const u = usersMap[p.userId] || {};
 
-    const matchFilter = filter === "all" || p.type === filter;
-
-    const matchSearch =
-      p.text?.toLowerCase().includes(search.toLowerCase()) ||
-      u?.name?.toLowerCase().includes(search.toLowerCase());
-
-    return matchFilter && matchSearch;
+    return (
+      (filter === "all" || p.type === filter) &&
+      (p.text?.toLowerCase().includes(search.toLowerCase()) ||
+        u?.name?.toLowerCase().includes(search.toLowerCase()))
+    );
   });
 
   //////////////////////////////////////////////////////
-// UI
-//////////////////////////////////////////////////////
-return (
-  <main className="bg-gray-100 min-h-screen">
+  // UI
+  //////////////////////////////////////////////////////
+  return (
+    <main className="bg-gray-100 min-h-screen">
 
-    {/* HEADER (STICKY) */}
-    <div className="sticky top-0 bg-white z-50 shadow">
+      {/* HEADER */}
+      <div className="sticky top-0 bg-white z-50 shadow">
 
-      {/* TOP BAR */}
-      <div className="p-3 flex justify-between items-center">
-        <h1 className="font-bold text-black text-lg">Smart Market</h1>
-
-        <button
-          onClick={() => setAutoPlay(!autoPlay)}
-          className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
-        >
-          {autoPlay ? "Sound ON" : "Sound OFF"}
-        </button>
-      </div>
-
-      {/* FILTER */}
-      <div className="flex gap-2 overflow-x-auto px-3 pb-2">
-        {["all", "video", "image", "text"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-1 text-sm rounded-full whitespace-nowrap ${
-              filter === f
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-black"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* SEARCH */}
-      <div className="px-3 pb-2">
-        <input
-          placeholder="Search posts, users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full p-2 bg-gray-100 rounded-lg text-black outline-none"
-        />
-      </div>
-
-      {/* WHAT'S ON YOUR MIND */}
-      <div
-        onClick={() => router.push("/post?story=true")}
-        className="mx-3 mb-3 flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
-      >
-        <img
-          src={
-            (user && usersMap[user?.uid]?.photo) ||
-            "/default-avatar.png"
-          }
-          className="w-8 h-8 rounded-full"
-        />
-        <p className="text-gray-500">What’s on your mind?</p>
-      </div>
-
-      {/* 🔥 STORIES (NOW CORRECT POSITION + ALWAYS VISIBLE) */}
-      <div className="flex gap-3 overflow-x-auto px-3 pb-3">
-
-        {/* ADD STORY */}
-        <div
-          onClick={() => router.push("/post?story=true")}
-          className="min-w-[110px] h-[180px] bg-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer"
-        >
-          <span className="text-2xl">+</span>
-          <p className="text-xs text-black mt-1">Add Story</p>
+        <div className="p-3 flex justify-between">
+          <h1 className="font-bold text-black">Smart Market</h1>
         </div>
 
-        {/* STORIES LIST */}
-        {stories.map((s) => {
-          const u = usersMap[s.userId];
+        {/* SEARCH */}
+        <div className="px-3 pb-2">
+          <input
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full p-2 bg-gray-100 rounded"
+          />
+        </div>
+
+        {/* CREATE */}
+        <div
+          onClick={() => router.push("/post?story=true")}
+          className="mx-3 mb-3 flex gap-2 bg-gray-100 p-2 rounded-full cursor-pointer"
+        >
+          <img
+            src={
+              (user && usersMap[user?.uid]?.photo) ||
+              "/default-avatar.png"
+            }
+            className="w-8 h-8 rounded-full"
+          />
+          <p className="text-gray-500">What’s on your mind?</p>
+        </div>
+
+        {/* 🔥 STORIES */}
+        <div className="flex gap-3 overflow-x-auto px-3 pb-3">
+
+          {/* ADD STORY */}
+          <div
+            onClick={() => router.push("/post?story=true")}
+            className="min-w-[110px] h-[180px] bg-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer"
+          >
+            <span className="text-2xl">+</span>
+            <p className="text-xs">Add Story</p>
+          </div>
+
+          {stories.map((s) => {
+            const u = usersMap[s.userId];
+
+            return (
+              <div
+                key={s.id}
+                onClick={() => router.push(`/reel/${s.id}`)}
+                className="min-w-[110px] h-[180px] rounded-xl overflow-hidden relative cursor-pointer"
+              >
+                <video
+                  src={s.media}
+                  className="w-full h-full object-cover"
+                  muted
+                  preload="none" // 🚀 FIX
+                  playsInline
+                  onMouseEnter={(e) => e.currentTarget.play()}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
+                />
+
+                <img
+                  src={u?.photo || "/default-avatar.png"}
+                  className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-blue-500"
+                />
+
+                <p className="absolute bottom-2 left-2 text-white text-xs">
+                  {u?.name || "User"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* POSTS */}
+      <div className="p-3 space-y-4">
+        {filteredPosts.map((post, i) => {
+          const u = usersMap[post.userId];
 
           return (
-            <div
-              key={s.id}
-              onClick={() => router.push(`/reel/${s.id}`)}
-              className="min-w-[110px] h-[180px] rounded-xl overflow-hidden relative cursor-pointer"
-            >
-              <video
-                src={s.media}
-                className="w-full h-full object-cover"
-                muted
-              />
+            <div key={post.id} className="bg-white p-4 rounded-xl">
+              <FollowButton targetUserId={post.userId} />
 
-              {/* PROFILE */}
-              <img
-                src={u?.photo || "/default-avatar.png"}
-                className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-blue-500"
-              />
+              {post.text && <p className="my-3">{post.text}</p>}
 
-              {/* NAME */}
-              <p className="absolute bottom-2 left-2 text-white text-xs font-semibold">
-                {u?.name || "User"}
-              </p>
+              {post.media &&
+                (post.type === "video" ? (
+                  <video
+                    ref={(el) => (videoRefs.current[i] = el)}
+                    src={post.media}
+                    controls
+                    preload="none"
+                    className="rounded w-full"
+                  />
+                ) : (
+                  <img src={post.media} className="rounded w-full" loading="lazy" />
+                ))}
+
+              <div className="flex justify-around mt-3 text-sm">
+                <button onClick={() => likePost(post.id)}>
+                  👍 {post.likes || 0}
+                </button>
+              </div>
+
+              <Comments postId={post.id} postOwnerId={post.userId} />
             </div>
           );
         })}
       </div>
-    </div>
-
-    {/* POSTS */}
-    <div className="p-3 space-y-4">
-      {filteredPosts.map((post, i) => {
-        const u = usersMap[post.userId];
-
-        return (
-          <div key={post.id} className="bg-white p-4 rounded-xl shadow-sm">
-
-            {/* USER */}
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <img
-                  src={u?.photo || "/default-avatar.png"}
-                  className="w-10 h-10 rounded-full"
-                />
-                <div>
-                  <p className="text-sm font-semibold text-black">
-                    {u?.name || "User"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatTime(post.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              <FollowButton targetUserId={post.userId} />
-            </div>
-
-            {/* TEXT */}
-            {post.text && (
-              <p className="my-3 text-black">{post.text}</p>
-            )}
-
-            {/* MEDIA */}
-            {post.media &&
-              (post.type === "video" ? (
-                <video
-                  ref={(el) => {
-                    videoRefs.current[i] = el;
-                  }}
-                  src={post.media}
-                  controls={!autoPlay}
-                  muted={!autoPlay}
-                  loop
-                  className="rounded w-full"
-                />
-              ) : (
-                <img src={post.media} className="rounded w-full" />
-              ))}
-
-            {/* ACTIONS */}
-            <div className="flex justify-around mt-3 text-sm">
-              <button onClick={() => likePost(post.id)}>
-                👍 {post.likes || 0}
-              </button>
-              <button>💬 {post.comments || 0}</button>
-              <button onClick={() => sharePost(post)}>
-                ↗ {post.shares || 0}
-              </button>
-              <span>👁 {post.views || 0}</span>
-            </div>
-
-            <Comments postId={post.id} postOwnerId={post.userId} />
-          </div>
-        );
-      })}
-    </div>
-  </main>
-);
+    </main>
+  );
 }

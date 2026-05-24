@@ -150,6 +150,29 @@ export default function FeedPage() {
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////
+// ACTIONS
+//////////////////////////////////////////////////////
+const likePost = async (id: string) => {
+  try {
+    await updateDoc(doc(db, "posts", id), {
+      likes: increment(1),
+    });
+  } catch (err) {
+    console.error("Like error:", err);
+  }
+};
+
+const sharePost = async (post: any) => {
+  try {
+    await updateDoc(doc(db, "posts", post.id), {
+      shares: increment(1),
+    });
+  } catch (err) {
+    console.error("Share error:", err);
+  }
+};
   return (
     <main className="bg-gray-100 min-h-screen">
 

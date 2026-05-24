@@ -177,11 +177,33 @@ const sharePost = async (post: any) => {
     <main className="bg-gray-100 min-h-screen">
 
       {/* HEADER */}
-      <div className="sticky top-0 bg-white z-50 shadow">
+      <div className="sticky top-0 bg-green-600 text-white z-50 shadow">
 
         <div className="p-3 flex justify-between">
           <h1 className="font-bold text-black">Smart Market</h1>
         </div>
+        <button
+    onClick={() => router.push("/feed")}
+    className="text-green-600 font-semibold"
+  >
+    🏠 Home
+  </button>
+
+  <button
+    onClick={() => router.push("/post")}
+    className="bg-green-600 text-white px-4 py-2 rounded-full"
+  >
+    ➕ Post
+  </button>
+
+  <button
+    onClick={() => router.back()}
+    className="text-green-600 font-semibold"
+  >
+    🔙 Back
+  </button>
+
+</div>
 
         {/* SEARCH */}
         <div className="px-3 pb-2">

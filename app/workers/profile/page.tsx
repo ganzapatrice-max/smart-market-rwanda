@@ -245,23 +245,39 @@ export default function ProfilePage() {
             placeholder="Bio"
             className="w-full mt-4 p-3 rounded bg-[#1e293b]" />
 
-          <div className="grid grid-cols-3 gap-3 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
 
-            <button onClick={saveProfile}
-              disabled={saving}
-              className="bg-green-600 p-3 rounded">
-              Save
-            </button>
+  <button
+    onClick={saveProfile}
+    disabled={saving}
+    className="bg-green-600 hover:bg-green-700 transition p-3 rounded-lg font-semibold"
+  >
+    {saving ? "Saving..." : "💾 Save"}
+  </button>
 
-            <button onClick={activateVerified}
-              className="bg-blue-600 p-3 rounded">
-              Verified
-            </button>
+  <button
+    onClick={activateVerified}
+    className="bg-blue-600 hover:bg-blue-700 transition p-3 rounded-lg font-semibold"
+  >
+    ✔ Verified
+  </button>
 
-            <Link href="/workers/technicians"
-              className="bg-purple-600 p-3 rounded text-center">
-              Find Tech
-            </Link>
+  <Link
+    href="/workers/technicians"
+    className="bg-purple-600 hover:bg-purple-700 transition p-3 rounded-lg text-center font-semibold"
+  >
+    🔧 Find Tech
+  </Link>
+
+  <Link
+    href="/workers/patients"
+    className="bg-emerald-600 hover:bg-emerald-700 transition p-3 rounded-lg text-center font-semibold"
+  >
+    🩺 Find Patient
+  </Link>
+
+</div>
+          
 
           </div>
 

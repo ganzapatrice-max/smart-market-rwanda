@@ -282,7 +282,6 @@ export default function ProfilePage() {
           </div>
 
         </div>
-      </div>
 
       {/* 🔻 BOTTOM NAV TEXT */}
       <div className="fixed bottom-0 left-0 right-0 bg-black text-center py-3 text-sm text-gray-300 border-t border-white/10">

@@ -51,7 +51,7 @@ export default function ServicesPage() {
       await Promise.all(
         services.map(async (s) => {
           if (!map[s.userId]) {
-            const snap = await getDoc(doc(db, "users", s.userId));
+            const snap = await getDoc(doc(db, "workers", s.userId));
             if (snap.exists()) {
               map[s.userId] = snap.data();
             }
@@ -85,15 +85,38 @@ export default function ServicesPage() {
     <main className="min-h-screen bg-[#f0f2f5]">
 
       {/* TOP NAV */}
-      <div className="bg-blue-600 text-white flex justify-between px-6 py-3">
-        <h1 className="font-bold">🛠 Services</h1>
+      <div className="bg-green-600 text-white flex justify-between items-center px-6 py-4 shadow">
 
-        <div className="flex gap-4 text-sm">
-          <Link href="/">🏠 Home</Link>
-          <Link href="/profile">👤 Profile</Link>
-          <Link href="/services/create">➕ Add Service</Link>
-        </div>
-      </div>
+  <h1 className="font-bold text-xl">
+    🛠 Smart Market Services
+  </h1>
+
+  <div className="flex gap-3">
+
+    <Link
+      href="/"
+      className="bg-white text-green-700 px-3 py-2 rounded-lg"
+    >
+      🏠 Home
+    </Link>
+
+    <Link
+      href="/feed"
+      className="bg-white text-green-700 px-3 py-2 rounded-lg"
+    >
+      📰 Feed
+    </Link>
+
+    <Link
+      href="/services/create"
+      className="bg-white text-green-700 px-3 py-2 rounded-lg"
+    >
+      ➕ Add Service
+    </Link>
+
+  </div>
+
+</div>
 
       <div className="max-w-2xl mx-auto py-4">
 
@@ -126,11 +149,19 @@ export default function ServicesPage() {
                   </p>
 
                   <Link
-                    href={`/profile/${s.userId}`}
-                    className="text-xs text-blue-500"
-                  >
-                    View profile
-                  </Link>
+  href={`/workers/${s.userId}`}
+  className="text-xs text-blue-500"
+>
+  View Seller
+</Link>
+
+                  <Link
+  href={`/workers/${s.userId}`}
+  className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+>
+  👤 Seller Profile
+</Link>
+
                 </div>
               </div>
 
@@ -186,10 +217,18 @@ export default function ServicesPage() {
                   💳 Buy
                 </button>
 
+                <button
+  onClick={() => router.push(`/services/${s.id}`)}
+  className="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-semibold"
+>
+  View Full Details
+</button>
+
               </div>
             </div>
           ))}
         </div>
+      
 
         {/* EMPTY */}
         {filtered.length === 0 && (

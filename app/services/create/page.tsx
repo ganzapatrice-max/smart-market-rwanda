@@ -22,11 +22,14 @@ export default function CreateService() {
   const [location, setLocation] = useState("");
   const [phone, setPhone] = useState("");
 
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   //////////////////////////////////////////////////////
-  // AUTH CHECK
+  // AUTH
   //////////////////////////////////////////////////////
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -40,48 +43,78 @@ export default function CreateService() {
   }, [router]);
 
   //////////////////////////////////////////////////////
-  // CREATE SERVICE + PUSH TO FEED
+  // PHOTO UPLOAD
   //////////////////////////////////////////////////////
+
+  const uploadPhotos = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    setUploading(true);
+
+    try {
+      const uploaded: string[] = [];
+
+      for (const file of Array.from(files)) {
+        const data = new FormData();
+
+        data.append("file", file);
+        data.append("upload_preset", "quickfix");
+
+        const res = await fetch(
+          "https://api.cloudinary.com/v1_1/dmebligcw/image/upload",
+          {
+            method: "POST",
+            body: data,
+          }
+        );
+
+        const result = await res.json();
+
+        if (result.secure_url) {
+          uploaded.push(result.secure_url);
+        }
+      }
+
+      setPhotos(uploaded);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload photos.");
+    }
+
+    setUploading(false);
+  };
+
+  //////////////////////////////////////////////////////
+  // CREATE SERVICE
+  //////////////////////////////////////////////////////
+
   const createService = async () => {
     if (!user) return;
 
     if (!title || !description || !price) {
-      alert("Please fill all required fields");
+      alert("Please complete all required fields.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // 1️⃣ SAVE SERVICE
-      const serviceRef = await addDoc(collection(db, "services"), {
+      await addDoc(collection(db, "services"), {
         userId: user.uid,
         title: title.trim(),
         description: description.trim(),
         price: Number(price),
-        category: category || "general",
-        location: location || "",
-        phone: phone || "",
-        createdAt: serverTimestamp(),
-      });
-
-      // 2️⃣ ALSO PUSH TO FEED (VERY IMPORTANT)
-      await addDoc(collection(db, "posts"), {
-        userId: user.uid,
-        text: `${title} - ${description}`,
-        media: "",
-        type: "service", // 🔥 this makes it appear in feed filter
-        serviceId: serviceRef.id, // 🔗 link to service
-        price: Number(price),
+        category: category || "General",
         location,
         phone,
-        likes: 0,
-        comments: 0,
-        shares: 0,
+        photos,
         createdAt: serverTimestamp(),
       });
 
-      alert("✅ Service posted and added to feed!");
+      alert("✅ Service created successfully!");
 
       router.push("/services");
     } catch (err: any) {
@@ -94,15 +127,15 @@ export default function CreateService() {
   //////////////////////////////////////////////////////
   // UI
   //////////////////////////////////////////////////////
+
   return (
     <main className="min-h-screen bg-[#0f172a] text-white p-6">
       <div className="max-w-xl mx-auto bg-[#111827] p-6 rounded-2xl shadow">
 
-        <h1 className="text-2xl font-bold mb-6">
+        <h1 className="text-3xl font-bold mb-6">
           🛠 Create Service
         </h1>
 
-        {/* TITLE */}
         <input
           placeholder="Service Title"
           value={title}
@@ -110,32 +143,29 @@ export default function CreateService() {
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* DESCRIPTION */}
         <textarea
-          placeholder="Service Description"
+          placeholder="Describe the problem or service"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={5}
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* PRICE */}
         <input
-          placeholder="Price (RWF)"
           type="number"
+          placeholder="Price (RWF)"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* CATEGORY */}
         <input
-          placeholder="Category (Cleaning, Repair...)"
+          placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* LOCATION */}
         <input
           placeholder="Location"
           value={location}
@@ -143,7 +173,6 @@ export default function CreateService() {
           className="w-full mb-3 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* PHONE */}
         <input
           placeholder="Phone Number"
           value={phone}
@@ -151,13 +180,45 @@ export default function CreateService() {
           className="w-full mb-4 p-3 rounded bg-gray-200 text-black"
         />
 
-        {/* BUTTON */}
+        <div className="mb-4">
+          <label className="font-semibold block mb-2">
+            📷 Add Photos of the Problem
+          </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={uploadPhotos}
+            className="w-full bg-gray-200 text-black rounded p-2"
+          />
+
+          {uploading && (
+            <p className="text-green-400 mt-2">
+              Uploading photos...
+            </p>
+          )}
+
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {photos.map((photo, index) => (
+                <img
+                  key={index}
+                  src={photo}
+                  alt={`Problem ${index + 1}`}
+                  className="w-full h-24 object-cover rounded-lg"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={createService}
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 p-3 rounded font-bold"
+          disabled={loading || uploading}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 p-3 rounded-lg font-bold"
         >
-          {loading ? "Posting..." : "Post Service"}
+          {loading ? "Creating Service..." : "🚀 Post Service"}
         </button>
 
       </div>

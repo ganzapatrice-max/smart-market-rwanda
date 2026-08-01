@@ -3,38 +3,97 @@
 import Link from "next/link";
 
 const categories = [
-  "Tutors",
-  "Plumbers",
-  "Electricians",
-  "Cleaners",
-  "House Helpers",
-  "Builders",
-  "Carpenters",
-  "Painters",
-  "Mechanics",
-  "Drivers",
-  "Gardeners",
-  "Locksmiths",
-  "Phone Repair",
-  "Computer Repair",
-  "TV Repair",
-  "Babysitters",
-  "Caregivers",
-  "Security Guards",
-  "Tailors",
-  "Beauticians",
-  "Barbers",
-  "Chefs",
-  "Photographers",
-  "Videographers",
-  "Doctors",
-  "Nurses",
-  "Lawyers",
-  "Accountants",
-  "Architects",
-  "Engineers",
-  "Farmers",
-  "General Workers",
+"👨‍🏫 Tutors",
+
+"🔧 Plumbers",
+
+"⚡ Electricians",
+
+"🧹 Cleaners",
+
+"👩‍🍳 House Helpers",
+
+"🏗 Builders",
+
+"🪚 Carpenters",
+
+"🎨 Painters",
+
+"❄️ AC Technicians",
+
+"📺 TV Repair",
+
+"📱 Phone Repair",
+
+"💻 Computer Repair",
+
+"🚗 Mechanics",
+
+"🚕 Drivers",
+
+"🌿 Gardeners",
+
+"🔐 Locksmiths",
+
+"📷 Photographers",
+
+"🎥 Videographers",
+
+"👴 Caregivers",
+
+"👮 Security Guards",
+
+"👕 Tailors",
+
+"💄 Beauticians",
+
+"💇 Barbers",
+
+"🎵 Musicians",
+
+"📦 Movers",
+
+"🛒 Delivery Workers",
+
+"🏥 Nurses",
+
+"🩺 Doctors",
+
+"💊 Pharmacists",
+
+"📊 Accountants",
+
+"🏢 Architects",
+
+"📐 Engineers",
+
+"🌾 Farmers",
+
+"🐄 Veterinarians",
+
+"🚰 Water Technicians",
+
+"📡 CCTV Installers",
+
+"☀️ Solar Installers",
+
+"📶 Network Technicians",
+
+"🏠 Real Estate Agents",
+
+"🧑‍🏫 Teachers",
+
+"📖 Translators",
+
+"✍️ Writers",
+
+"🎤 Event MCs",
+
+"🎉 Event Planners",
+
+"📦 General Workers"
+
+ 
 ];
 
 export default function WorkersPage() {

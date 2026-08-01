@@ -29,6 +29,7 @@ export default function Home() {
 
   const categories = [
     { icon: "🔧", title: "Find Workers", desc: "Tutors, cleaners, plumbers", link: "/workers" },
+    { icon: "👨‍🏫", title: "Find Job", desc: "find and connect with recruiters", link: "/Job" },
     { icon: "🏠", title: "Rent Houses", desc: "Homes, apartments, rooms", link: "/rent" },
     { icon: "📱", title: "Buy Used Products", desc: "Phones, laptops, furniture", link: "/used" },
     { icon: "📢", title: "Promote Business", desc: "Advertise your business", link: "/marketing" },

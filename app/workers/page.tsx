@@ -147,7 +147,7 @@ export default function WorkersPage() {
         </Link>
 
          <Link
-            href="/servics/[id]"
+            href="/services"
             className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
           >
           Services

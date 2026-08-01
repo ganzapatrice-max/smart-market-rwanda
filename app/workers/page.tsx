@@ -141,7 +141,7 @@ export default function WorkersPage() {
 
         <Link
           href="/workers/profile?role=technician"
-          className="block text-center bg-green-600 text-white py-5 rounded-2xl text-xl font-bold"
+          className="block text-center bg-black-600 text-white py-5 rounded-2xl text-xl font-bold"
         >
           Become a Worker
         </Link>

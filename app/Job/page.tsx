@@ -90,34 +90,65 @@ export default function FindJobPage() {
 
         </div>
 
-        {/* Bottom Navigation */}
+              </div>
 
-        <div className="grid grid-cols-3 gap-4 mt-8">
+      {/* Space so the last recruiter isn't hidden */}
+      <div className="h-40" />
+
+      {/* Fixed Bottom Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl z-50">
+        <div className="max-w-6xl mx-auto grid grid-cols-3 md:grid-cols-6 gap-2 p-3">
 
           <Link
             href="/"
-            className="bg-gray-800 text-white text-center py-4 rounded-xl font-semibold"
+            className="flex flex-col items-center justify-center rounded-xl bg-gray-800 text-white py-3 hover:bg-gray-900 transition"
           >
-            🏠 Home
+            <span className="text-2xl">🏠</span>
+            <span className="text-xs font-semibold">Home</span>
           </Link>
 
           <Link
             href="/workers"
-            className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
+            className="flex flex-col items-center justify-center rounded-xl bg-green-700 text-white py-3 hover:bg-green-800 transition"
           >
-            👷 Find Workers
+            <span className="text-2xl">👷</span>
+            <span className="text-xs font-semibold">Workers</span>
           </Link>
 
           <Link
-            href="/profile"
-            className="bg-blue-700 text-white text-center py-4 rounded-xl font-semibold"
+            href="/workers/profile"
+            className="flex flex-col items-center justify-center rounded-xl bg-blue-700 text-white py-3 hover:bg-blue-800 transition"
           >
-            👤 My Profile
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-semibold">Profile</span>
+          </Link>
+
+          <Link
+            href="/workers/profile?role=technician"
+            className="flex flex-col items-center justify-center rounded-xl bg-black text-white py-3 hover:bg-gray-900 transition"
+          >
+            <span className="text-2xl">💼</span>
+            <span className="text-xs font-semibold">Become Worker</span>
+          </Link>
+
+          <Link
+            href="/services"
+            className="flex flex-col items-center justify-center rounded-xl bg-emerald-600 text-white py-3 hover:bg-emerald-700 transition"
+          >
+            <span className="text-2xl">🛠</span>
+            <span className="text-xs font-semibold">Services</span>
+          </Link>
+
+          <Link
+            href="/feed"
+            className="flex flex-col items-center justify-center rounded-xl bg-pink-600 text-white py-3 hover:bg-pink-700 transition"
+          >
+            <span className="text-2xl">📰</span>
+            <span className="text-xs font-semibold">Feed</span>
           </Link>
 
         </div>
-
-      </div>
+      </footer>
 
     </main>
   );

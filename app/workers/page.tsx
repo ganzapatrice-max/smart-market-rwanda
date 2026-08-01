@@ -146,6 +146,20 @@ export default function WorkersPage() {
           Become a Worker
         </Link>
 
+         <Link
+            href="/servics"
+            className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
+          >
+          Services
+          </Link>
+
+          <Link
+            href="/feed"
+            className="bg-blue-700 text-white text-center py-4 rounded-xl font-semibold"
+          >
+            FEED
+          </Link>
+
 
       </div>
 

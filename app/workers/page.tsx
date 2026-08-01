@@ -113,14 +113,31 @@ export default function WorkersPage() {
       </div>
 
       {/* Footer Buttons */}
-      <div className="max-w-3xl mx-auto p-4 space-y-4 pb-10">
 
-        <Link
-          href="/workers/profile?role=patient"
-          className="block text-center bg-blue-600 text-white py-5 rounded-2xl text-xl font-bold"
-        >
-          Patient Profile
-        </Link>
+
+
+        <div className="grid grid-cols-3 gap-4 mt-8">
+
+          <Link
+            href="/"
+            className="bg-gray-800 text-white text-center py-4 rounded-xl font-semibold"
+          >
+            🏠 Home
+          </Link>
+
+          <Link
+            href="/job"
+            className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
+          >
+            👷 Find Recruiters
+          </Link>
+
+          <Link
+            href="/profile"
+            className="bg-blue-700 text-white text-center py-4 rounded-xl font-semibold"
+          >
+            👤 My Profile
+          </Link>
 
         <Link
           href="/workers/profile?role=technician"
@@ -129,12 +146,6 @@ export default function WorkersPage() {
           Become a Worker
         </Link>
 
-        <Link
-          href="/"
-          className="block text-center bg-gray-800 text-white py-5 rounded-2xl text-xl font-bold"
-        >
-          Back Home
-        </Link>
 
       </div>
 

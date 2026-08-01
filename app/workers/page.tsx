@@ -112,57 +112,63 @@ export default function WorkersPage() {
 
       </div>
 
-      {/* Footer Buttons */}
+      {/* Space so last card isn't hidden behind footer */}
+<div className="h-40" />
 
+{/* Fixed Bottom Footer */}
+<footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl z-50">
+  <div className="max-w-6xl mx-auto grid grid-cols-3 md:grid-cols-6 gap-2 p-3">
 
+    <Link
+      href="/"
+      className="flex flex-col items-center justify-center rounded-xl bg-gray-800 text-white py-3 hover:bg-gray-900 transition"
+    >
+      <span className="text-2xl">🏠</span>
+      <span className="text-xs font-semibold">Home</span>
+    </Link>
 
-        <div className="grid grid-cols-3 gap-4 mt-8">
+    <Link
+      href="/jobs"
+      className="flex flex-col items-center justify-center rounded-xl bg-indigo-600 text-white py-3 hover:bg-indigo-700 transition"
+    >
+      <span className="text-2xl">💼</span>
+      <span className="text-xs font-semibold">Recruiters</span>
+    </Link>
 
-          <Link
-            href="/"
-            className="bg-gray-800 text-white text-center py-4 rounded-xl font-semibold"
-          >
-            🏠 Home
-          </Link>
+    <Link
+      href="/workers/profile"
+      className="flex flex-col items-center justify-center rounded-xl bg-blue-600 text-white py-3 hover:bg-blue-700 transition"
+    >
+      <span className="text-2xl">👤</span>
+      <span className="text-xs font-semibold">Profile</span>
+    </Link>
 
-          <Link
-            href="/job"
-            className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
-          >
-            👷 Find Recruiters
-          </Link>
+    <Link
+      href="/workers/profile?role=technician"
+      className="flex flex-col items-center justify-center rounded-xl bg-black text-white py-3 hover:bg-gray-900 transition"
+    >
+      <span className="text-2xl">👷</span>
+      <span className="text-xs font-semibold">Become Worker</span>
+    </Link>
 
-          <Link
-            href="/profile"
-            className="bg-blue-700 text-white text-center py-4 rounded-xl font-semibold"
-          >
-            👤 My Profile
-          </Link>
+    <Link
+      href="/services"
+      className="flex flex-col items-center justify-center rounded-xl bg-green-600 text-white py-3 hover:bg-green-700 transition"
+    >
+      <span className="text-2xl">🛠</span>
+      <span className="text-xs font-semibold">Services</span>
+    </Link>
 
-        <Link
-          href="/workers/profile?role=technician"
-          className="block text-center bg-black-600 text-white py-5 rounded-2xl text-xl font-bold"
-        >
-          Become a Worker
-        </Link>
+    <Link
+      href="/feed"
+      className="flex flex-col items-center justify-center rounded-xl bg-pink-600 text-white py-3 hover:bg-pink-700 transition"
+    >
+      <span className="text-2xl">📰</span>
+      <span className="text-xs font-semibold">Feed</span>
+    </Link>
 
-         <Link
-            href="/services"
-            className="bg-green-700 text-white text-center py-4 rounded-xl font-semibold"
-          >
-          Services
-          </Link>
-
-          <Link
-            href="/feed"
-            className="bg-blue-700 text-white text-center py-4 rounded-xl font-semibold"
-          >
-            FEED
-          </Link>
-
-
-      </div>
-
+  </div>
+</footer>
     </main>
   );
 }

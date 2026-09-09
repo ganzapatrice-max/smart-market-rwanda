@@ -140,6 +140,13 @@ export default function FindJobPage() {
           </Link>
 
           <Link
+  href="/company/register"
+  className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold"
+>
+  🏢 Register Company
+</Link>
+
+          <Link
             href="/feed"
             className="flex flex-col items-center justify-center rounded-xl bg-pink-600 text-white py-3 hover:bg-pink-700 transition"
           >

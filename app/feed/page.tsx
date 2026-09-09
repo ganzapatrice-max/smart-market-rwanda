@@ -46,7 +46,7 @@ export default function FeedPage() {
     const q = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc"),
-      limit(10)
+      limit(100)
     );
 
     return onSnapshot(q, (snap) => {
@@ -67,7 +67,7 @@ export default function FeedPage() {
       where("isStory", "==", true),
       where("createdAt", ">", yesterday),
       orderBy("createdAt", "desc"),
-      limit(10)
+      limit(100)
     );
 
     return onSnapshot(q, (snap) => {

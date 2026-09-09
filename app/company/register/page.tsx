@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import { useState } from "react";
@@ -13,6 +12,8 @@ const CLOUD_NAME = "dmebligcw";
 const UPLOAD_PRESET = "quickfix";
 
 export default function RegisterCompanyPage() {
+  const [loading, setLoading] = useState(false);
+
   const [company, setCompany] = useState({
     name: "",
     registrationNumber: "",
@@ -35,7 +36,6 @@ export default function RegisterCompanyPage() {
   const [logo, setLogo] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [gallery, setGallery] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const updateCompany = (
     field: keyof typeof company,
@@ -47,13 +47,13 @@ export default function RegisterCompanyPage() {
     }));
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
+  const uploadImage = async (file: File) => {
     const formData = new FormData();
 
     formData.append("file", file);
     formData.append("upload_preset", UPLOAD_PRESET);
 
-    const response = await fetch(
+    const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
       {
         method: "POST",
@@ -61,15 +61,11 @@ export default function RegisterCompanyPage() {
       }
     );
 
-    if (!response.ok) {
-      throw new Error("Image upload failed");
+    if (!res.ok) {
+      throw new Error("Cloudinary upload failed");
     }
 
-    const data = await response.json();
-
-    if (!data.secure_url) {
-      throw new Error("Cloudinary did not return an image URL");
-    }
+    const data = await res.json();
 
     return data.secure_url;
   };
@@ -81,333 +77,290 @@ export default function RegisterCompanyPage() {
       let logoUrl = "";
       let coverUrl = "";
 
-      // Upload company logo
       if (logo) {
         logoUrl = await uploadImage(logo);
       }
 
-      // Upload company cover
       if (cover) {
         coverUrl = await uploadImage(cover);
       }
 
-      // Upload gallery images
       const galleryUrls: string[] = [];
 
-      for (const photo of gallery) {
-        const url = await uploadImage(photo);
+      for (const image of gallery) {
+        const url = await uploadImage(image);
         galleryUrls.push(url);
       }
 
-      // Save company information to Firestore
       await addDoc(collection(db, "companies"), {
         ...company,
         logo: logoUrl,
         cover: coverUrl,
         gallery: galleryUrls,
-        createdAt: serverTimestamp(),
         verified: false,
         rating: 0,
         jobs: 0,
+        createdAt: serverTimestamp(),
       });
 
       alert("Company registered successfully!");
 
       window.location.href = "/company";
-    } catch (error) {
-      console.error("Error registering company:", error);
-
-      alert(
-        "Something went wrong while registering the company."
-      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to register company.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 px-4 py-10">
-      <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-lg">
-        {/* Page Header */}
-        <h1 className="mb-2 text-center text-4xl font-bold">
-          Register Construction Company
+    <main className="min-h-screen bg-gray-100 py-10 px-5">
+      <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-8">
+
+        <h1 className="text-4xl font-bold text-center mb-2">
+          Register Company
         </h1>
 
-        <p className="mb-10 text-center text-gray-500">
-          Complete your company profile to start posting jobs.
+        <p className="text-center text-gray-500 mb-10">
+          Complete your company profile.
         </p>
 
-        {/* Company Images */}
-        <section>
-          <h2 className="mb-5 text-2xl font-bold">
-            Company Images
-          </h2>
+        <h2 className="text-2xl font-bold mb-5">
+          Company Images
+        </h2>
 
-          <div className="mb-10 space-y-6">
-            {/* Company Logo */}
-            <div>
-              <label
-                htmlFor="company-logo"
-                className="mb-2 block font-semibold"
-              >
-                Company Logo
-              </label>
+        <div className="space-y-6">
 
-              <input
-                id="company-logo"
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  setLogo(event.target.files?.[0] ?? null);
-                }}
-                className="w-full rounded-xl border p-3"
-              />
-            </div>
-
-            {/* Cover Photo */}
-            <div>
-              <label
-                htmlFor="company-cover"
-                className="mb-2 block font-semibold"
-              >
-                Cover Photo
-              </label>
-
-              <input
-                id="company-cover"
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  setCover(event.target.files?.[0] ?? null);
-                }}
-                className="w-full rounded-xl border p-3"
-              />
-            </div>
-
-            {/* Gallery Photos */}
-            <div>
-              <label
-                htmlFor="company-gallery"
-                className="mb-2 block font-semibold"
-              >
-                Gallery Photos
-              </label>
-
-              <input
-                id="company-gallery"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) => {
-                  setGallery(
-                    Array.from(event.target.files ?? [])
-                  );
-                }}
-                className="w-full rounded-xl border p-3"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Company Information */}
-        <section>
-          <h2 className="mb-5 text-2xl font-bold">
-            Company Information
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Company Name"
-              value={company.name}
-              onChange={(event) =>
-                updateCompany("name", event.target.value)
-              }
-            />
+          <div>
+            <label className="font-semibold block mb-2">
+              Company Logo
+            </label>
 
             <input
-              className="rounded-xl border p-4"
-              placeholder="Registration Number"
-              value={company.registrationNumber}
-              onChange={(event) =>
-                updateCompany(
-                  "registrationNumber",
-                  event.target.value
-                )
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setLogo(e.target.files?.[0] || null)
               }
-            />
-
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Industry"
-              value={company.industry}
-              onChange={(event) =>
-                updateCompany("industry", event.target.value)
-              }
-            />
-
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Founded Year"
-              value={company.founded}
-              onChange={(event) =>
-                updateCompany("founded", event.target.value)
-              }
-            />
-
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Number of Employees"
-              value={company.employees}
-              onChange={(event) =>
-                updateCompany("employees", event.target.value)
-              }
+              className="w-full border rounded-xl p-3"
             />
           </div>
 
-          <textarea
-            className="mt-5 w-full rounded-xl border p-4"
-            rows={5}
-            placeholder="Company Description"
-            value={company.description}
-            onChange={(event) =>
+          <div>
+            <label className="font-semibold block mb-2">
+              Cover Image
+            </label>
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setCover(e.target.files?.[0] || null)
+              }
+              className="w-full border rounded-xl p-3"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold block mb-2">
+              Gallery Images
+            </label>
+
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) =>
+                setGallery(Array.from(e.target.files || []))
+              }
+              className="w-full border rounded-xl p-3"
+            />
+          </div>
+
+        </div>
+
+        <h2 className="text-2xl font-bold mt-10 mb-5">
+          Company Information
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-5">
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Company Name"
+            value={company.name}
+            onChange={(e) =>
+              updateCompany("name", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Registration Number"
+            value={company.registrationNumber}
+            onChange={(e) =>
               updateCompany(
-                "description",
-                event.target.value
+                "registrationNumber",
+                e.target.value
               )
             }
           />
-        </section>
 
-        {/* Contact Information */}
-        <section>
-          <h2 className="mb-5 mt-10 text-2xl font-bold">
-            Contact Information
-          </h2>
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Industry"
+            value={company.industry}
+            onChange={(e) =>
+              updateCompany("industry", e.target.value)
+            }
+          />
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <input
-              className="rounded-xl border p-4"
-              type="tel"
-              placeholder="Phone"
-              value={company.phone}
-              onChange={(event) =>
-                updateCompany("phone", event.target.value)
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Founded Year"
+            value={company.founded}
+            onChange={(e) =>
+              updateCompany("founded", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              type="tel"
-              placeholder="WhatsApp"
-              value={company.whatsapp}
-              onChange={(event) =>
-                updateCompany(
-                  "whatsapp",
-                  event.target.value
-                )
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Employees"
+            value={company.employees}
+            onChange={(e) =>
+              updateCompany("employees", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              type="email"
-              placeholder="Email"
-              value={company.email}
-              onChange={(event) =>
-                updateCompany("email", event.target.value)
-              }
-            />
+        </div>
 
-            <input
-              className="rounded-xl border p-4"
-              type="url"
-              placeholder="Website"
-              value={company.website}
-              onChange={(event) =>
-                updateCompany(
-                  "website",
-                  event.target.value
-                )
-              }
-            />
-          </div>
-        </section>
+        <textarea
+          rows={5}
+          className="border rounded-xl p-4 w-full mt-5"
+          placeholder="Company Description"
+          value={company.description}
+          onChange={(e) =>
+            updateCompany("description", e.target.value)
+          }
+        />
 
-        {/* Company Address */}
-        <section>
-          <h2 className="mb-5 mt-10 text-2xl font-bold">
-            Company Address
-          </h2>
+        <h2 className="text-2xl font-bold mt-10 mb-5">
+          Contact Information
+        </h2>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Country"
-              value={company.country}
-              onChange={(event) =>
-                updateCompany("country", event.target.value)
-              }
-            />
+        <div className="grid md:grid-cols-2 gap-5">
 
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Province"
-              value={company.province}
-              onChange={(event) =>
-                updateCompany("province", event.target.value)
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Phone"
+            value={company.phone}
+            onChange={(e) =>
+              updateCompany("phone", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              placeholder="District"
-              value={company.district}
-              onChange={(event) =>
-                updateCompany("district", event.target.value)
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="WhatsApp"
+            value={company.whatsapp}
+            onChange={(e) =>
+              updateCompany("whatsapp", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Sector"
-              value={company.sector}
-              onChange={(event) =>
-                updateCompany("sector", event.target.value)
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Email"
+            value={company.email}
+            onChange={(e) =>
+              updateCompany("email", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Cell"
-              value={company.cell}
-              onChange={(event) =>
-                updateCompany("cell", event.target.value)
-              }
-            />
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Website"
+            value={company.website}
+            onChange={(e) =>
+              updateCompany("website", e.target.value)
+            }
+          />
 
-            <input
-              className="rounded-xl border p-4"
-              placeholder="Village"
-              value={company.village}
-              onChange={(event) =>
-                updateCompany("village", event.target.value)
-              }
-            />
-          </div>
-        </section>
+        </div>
 
-        {/* Register Button */}
+        <h2 className="text-2xl font-bold mt-10 mb-5">
+          Address
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-5">
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Country"
+            value={company.country}
+            onChange={(e) =>
+              updateCompany("country", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Province"
+            value={company.province}
+            onChange={(e) =>
+              updateCompany("province", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="District"
+            value={company.district}
+            onChange={(e) =>
+              updateCompany("district", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Sector"
+            value={company.sector}
+            onChange={(e) =>
+              updateCompany("sector", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Cell"
+            value={company.cell}
+            onChange={(e) =>
+              updateCompany("cell", e.target.value)
+            }
+          />
+
+          <input
+            className="border rounded-xl p-4"
+            placeholder="Village"
+            value={company.village}
+            onChange={(e) =>
+              updateCompany("village", e.target.value)
+            }
+          />
+
+        </div>
+
         <button
-          type="button"
           onClick={saveCompany}
           disabled={loading}
-          className="mt-10 w-full rounded-xl bg-blue-600 py-4 text-lg font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full mt-10 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-4 rounded-xl"
         >
-          {loading ? "Saving..." : "Register Company"}
+          {loading ? "Registering..." : "Register Company"}
         </button>
+
       </div>
     </main>
   );
 }
-```

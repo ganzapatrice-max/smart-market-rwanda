@@ -37,7 +37,10 @@ export default function RegisterCompanyPage() {
   const [gallery, setGallery] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const updateCompany = (field: string, value: string) => {
+  const updateCompany = (
+    field: keyof typeof company,
+    value: string
+  ) => {
     setCompany((prev) => ({
       ...prev,
       [field]: value,
@@ -78,12 +81,12 @@ export default function RegisterCompanyPage() {
       let logoUrl = "";
       let coverUrl = "";
 
-      // Upload logo
+      // Upload company logo
       if (logo) {
         logoUrl = await uploadImage(logo);
       }
 
-      // Upload cover image
+      // Upload company cover
       if (cover) {
         coverUrl = await uploadImage(cover);
       }
@@ -96,7 +99,7 @@ export default function RegisterCompanyPage() {
         galleryUrls.push(url);
       }
 
-      // Save company to Firestore
+      // Save company information to Firestore
       await addDoc(collection(db, "companies"), {
         ...company,
         logo: logoUrl,
@@ -113,7 +116,10 @@ export default function RegisterCompanyPage() {
       window.location.href = "/company";
     } catch (error) {
       console.error("Error registering company:", error);
-      alert("Something went wrong while registering the company.");
+
+      alert(
+        "Something went wrong while registering the company."
+      );
     } finally {
       setLoading(false);
     }
@@ -138,51 +144,65 @@ export default function RegisterCompanyPage() {
           </h2>
 
           <div className="mb-10 space-y-6">
-            {/* Logo */}
+            {/* Company Logo */}
             <div>
-              <label className="mb-2 block font-semibold">
+              <label
+                htmlFor="company-logo"
+                className="mb-2 block font-semibold"
+              >
                 Company Logo
               </label>
 
               <input
+                id="company-logo"
                 type="file"
                 accept="image/*"
-                onChange={(event) =>
-                  setLogo(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => {
+                  setLogo(event.target.files?.[0] ?? null);
+                }}
                 className="w-full rounded-xl border p-3"
               />
             </div>
 
-            {/* Cover */}
+            {/* Cover Photo */}
             <div>
-              <label className="mb-2 block font-semibold">
+              <label
+                htmlFor="company-cover"
+                className="mb-2 block font-semibold"
+              >
                 Cover Photo
               </label>
 
               <input
+                id="company-cover"
                 type="file"
                 accept="image/*"
-                onChange={(event) =>
-                  setCover(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => {
+                  setCover(event.target.files?.[0] ?? null);
+                }}
                 className="w-full rounded-xl border p-3"
               />
             </div>
 
-            {/* Gallery */}
+            {/* Gallery Photos */}
             <div>
-              <label className="mb-2 block font-semibold">
+              <label
+                htmlFor="company-gallery"
+                className="mb-2 block font-semibold"
+              >
                 Gallery Photos
               </label>
 
               <input
+                id="company-gallery"
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={(event) =>
-                  setGallery(Array.from(event.target.files ?? []))
-                }
+                onChange={(event) => {
+                  setGallery(
+                    Array.from(event.target.files ?? [])
+                  );
+                }}
                 className="w-full rounded-xl border p-3"
               />
             </div>
@@ -251,7 +271,10 @@ export default function RegisterCompanyPage() {
             placeholder="Company Description"
             value={company.description}
             onChange={(event) =>
-              updateCompany("description", event.target.value)
+              updateCompany(
+                "description",
+                event.target.value
+              )
             }
           />
         </section>
@@ -265,6 +288,7 @@ export default function RegisterCompanyPage() {
           <div className="grid gap-5 md:grid-cols-2">
             <input
               className="rounded-xl border p-4"
+              type="tel"
               placeholder="Phone"
               value={company.phone}
               onChange={(event) =>
@@ -274,10 +298,14 @@ export default function RegisterCompanyPage() {
 
             <input
               className="rounded-xl border p-4"
+              type="tel"
               placeholder="WhatsApp"
               value={company.whatsapp}
               onChange={(event) =>
-                updateCompany("whatsapp", event.target.value)
+                updateCompany(
+                  "whatsapp",
+                  event.target.value
+                )
               }
             />
 
@@ -297,7 +325,10 @@ export default function RegisterCompanyPage() {
               placeholder="Website"
               value={company.website}
               onChange={(event) =>
-                updateCompany("website", event.target.value)
+                updateCompany(
+                  "website",
+                  event.target.value
+                )
               }
             />
           </div>
@@ -366,7 +397,7 @@ export default function RegisterCompanyPage() {
           </div>
         </section>
 
-        {/* Submit */}
+        {/* Register Button */}
         <button
           type="button"
           onClick={saveCompany}
@@ -379,3 +410,4 @@ export default function RegisterCompanyPage() {
     </main>
   );
 }
+```

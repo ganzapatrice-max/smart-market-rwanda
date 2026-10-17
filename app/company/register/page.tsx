@@ -106,7 +106,7 @@ export default function RegisterCompanyPage() {
         galleryUrls.push(url);
       }
 
-      await addDoc(collection(db, "companies"), {
+      const companyRef = await addDoc(collection(db, "companies"), {
         ...company,
         logo: logoUrl,
         cover: coverUrl,
@@ -118,7 +118,7 @@ export default function RegisterCompanyPage() {
       });
 
       alert("Company registered successfully!");
-      window.location.href = "/company";
+     window.location.href = `/company/dashboard?companyId=${companyRef.id}`;
     } catch (err) {
       console.error(err);
       alert("Failed to register company. Please try again.");

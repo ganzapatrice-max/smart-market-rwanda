@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
@@ -17,7 +17,7 @@ type CompanyData = {
   logo?: string;
 };
 
-export default function CompanyDashboardPage() {
+function CompanyDashboardContent() {
   const searchParams = useSearchParams();
   const companyId = searchParams.get("companyId");
   const [company, setCompany] = useState<CompanyData | null>(null);
@@ -210,10 +210,25 @@ export default function CompanyDashboardPage() {
                   {card.description}
                 </p>
               </Link>
+
             ))}
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+export default function CompanyDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-950 p-6 text-white">
+          Loading company dashboard...
+        </main>
+      }
+    >
+      <CompanyDashboardContent />
+    </Suspense>
   );
 }

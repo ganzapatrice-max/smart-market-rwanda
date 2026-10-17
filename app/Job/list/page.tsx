@@ -1,8 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function JobsListPage() {
+function JobsListContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
 
@@ -26,5 +27,19 @@ export default function JobsListPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function JobsListPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-100 p-8">
+          <p className="text-gray-600">Loading jobs...</p>
+        </main>
+      }
+    >
+      <JobsListContent />
+    </Suspense>
   );
 }

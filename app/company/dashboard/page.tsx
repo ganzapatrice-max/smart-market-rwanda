@@ -72,12 +72,14 @@ function CompanyDashboardContent() {
       description: "View your company information.",
       href: company ? `/company/${company.id}` : "/company",
     },
-    {
-      icon: "📢",
-      title: "Post a Job",
-      description: "Create a new job opportunity.",
-      href: "/company/jobs/create",
-    },
+   {
+  icon: "📢",
+  title: "Post a Job",
+  description: "Create a new job opportunity.",
+  href: company
+    ? `/company/jobs/create?companyId=${encodeURIComponent(company.id)}`
+    : "/company/register",
+},
     {
       icon: "💼",
       title: "My Jobs",

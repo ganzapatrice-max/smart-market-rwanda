@@ -57,18 +57,23 @@ function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+
 function matchesCategory(company: Company, category: string) {
   const industry = normalize(company.industry || "");
   const selectedCategory = normalize(category);
 
-  if (!industry) return false;
+  if (!industry || !selectedCategory) return false;
+
+  // Match the exact industry first.
   if (industry === selectedCategory) return true;
 
   const aliases = categoryAliases[category] || [category];
 
   return aliases.some((alias) => {
     const normalizedAlias = normalize(alias);
-    return industry.includes(normalizedAlias);
+
+    // Match complete words or phrases, not arbitrary substrings.
+    return ` ${industry} `.includes(` ${normalizedAlias} `);
   });
 }
 

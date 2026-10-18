@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 
@@ -60,7 +60,7 @@ export default function FindJobPage() {
           {recruiters.map((item) => (
             <Link
               key={item.name}
-              href={`/jobs/list?category=${encodeURIComponent(item.name)}`}
+              href={`/job/list?category=${encodeURIComponent(item.name)}`}
               className={`block bg-white rounded-2xl border-l-8 ${item.color}
               hover:shadow-xl transition-all duration-300`}
             >

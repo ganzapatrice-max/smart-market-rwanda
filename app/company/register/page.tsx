@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
   addDoc,
   collection,
@@ -88,6 +88,14 @@ export default function RegisterCompanyPage() {
     try {
       setLoading(true);
 
+      const user = auth.currentUser;
+
+if (!user) {
+  alert("Please log in before registering your company.");
+  window.location.href = "/login";
+  return;
+}
+
       let logoUrl = "";
       let coverUrl = "";
 
@@ -107,15 +115,17 @@ export default function RegisterCompanyPage() {
       }
 
       const companyRef = await addDoc(collection(db, "companies"), {
-        ...company,
-        logo: logoUrl,
-        cover: coverUrl,
-        gallery: galleryUrls,
-        verified: false,
-        rating: 0,
-        jobs: 0,
-        createdAt: serverTimestamp(),
-      });
+  ...company,
+  ownerUid: user.uid,
+  ownerEmail: user.email || "",
+  logo: logoUrl,
+  cover: coverUrl,
+  gallery: galleryUrls,
+  verified: false,
+  rating: 0,
+  jobs: 0,
+  createdAt: serverTimestamp(),
+});
 
       alert("Company registered successfully!");
      window.location.href = `/company/dashboard?companyId=${companyRef.id}`;
@@ -126,6 +136,7 @@ export default function RegisterCompanyPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 sm:px-6 lg:px-8">

@@ -11,7 +11,7 @@ import {
   getDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 
 function CreateJobForm() {
   const searchParams = useSearchParams();
@@ -28,34 +28,56 @@ function CreateJobForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
     if (!companyId) {
-      setError("Company ID is missing. Open this page from your company dashboard.");
+      setError(
+        "Company ID is missing. Open this page from your company dashboard."
+      );
       return;
     }
 
     if (!title.trim() || !description.trim() || !location.trim()) {
-      setError("Please complete the job title, description, and location.");
+      setError(
+        "Please complete the job title, description, and location."
+      );
       return;
     }
 
     setSaving(true);
 
     try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
       const companySnapshot = await getDoc(
         doc(db, "companies", companyId)
       );
 
       if (!companySnapshot.exists()) {
         setError("The selected company could not be found.");
-        setSaving(false);
         return;
       }
 
       const company = companySnapshot.data();
+
+      // Only the registered owner may publish jobs for this company.
+      if (
+        !company.ownerUid ||
+        company.ownerUid !== user.uid
+      ) {
+        setError(
+          "Access denied. Only the company owner can publish jobs for this company."
+        );
+        return;
+      }
 
       await addDoc(collection(db, "jobs"), {
         companyId,
@@ -75,12 +97,13 @@ function CreateJobForm() {
     } catch (err) {
       console.error("Failed to create job:", err);
       setError(
-        "Unable to publish this vacancy. Check your Firebase connection and Firestore security rules, then try again."
+        "Unable to publish this vacancy. Check your connection and Firestore security rules, then try again."
       );
     } finally {
       setSaving(false);
     }
   }
+
 
   const inputClass =
     "mt-2 w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-400";

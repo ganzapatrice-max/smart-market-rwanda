@@ -1,14 +1,18 @@
 
 "use client";
 
+
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+
 
 type CompanyData = {
   id: string;
+  ownerUid?: string;
   name?: string;
   industry?: string;
   description?: string;
@@ -18,52 +22,84 @@ type CompanyData = {
 };
 
 function CompanyDashboardContent() {
-  const searchParams = useSearchParams();
-  const companyId = searchParams.get("companyId");
+const searchParams = useSearchParams();
+const router = useRouter();
+const companyId = searchParams.get("companyId");
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authorized, setAuthorized] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+useEffect(() => {
+  let active = true;
 
-    async function loadCompany() {
-      if (!companyId) {
-        setLoading(false);
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!active) return;
+
+    setCompany(null);
+    setAuthorized(false);
+    setError("");
+
+    if (!user) {
+      setLoading(false);
+      router.replace("/login");
+      return;
+    }
+
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const snapshot = await getDoc(
+        doc(db, "companies", companyId)
+      );
+
+      if (!active) return;
+
+      if (!snapshot.exists()) {
+        setError("Company not found.");
         return;
       }
 
-      try {
-        const snapshot = await getDoc(
-          doc(db, "companies", companyId)
+      const data = snapshot.data() as Omit<CompanyData, "id">;
+
+      if (!data.ownerUid || data.ownerUid !== user.uid) {
+        setError(
+          "Access denied. Only the company owner can access this dashboard."
         );
+        return;
+      }
 
-        if (!active) return;
+      setCompany({
+        ...data,
+        id: snapshot.id,
+      });
 
-        if (snapshot.exists()) {
-          setCompany({
-            id: snapshot.id,
-            ...snapshot.data(),
-          } as CompanyData);
-        } else {
-          setError("Company not found.");
-        }
-      } catch (err) {
-        console.error("Failed to load company:", err);
-        if (active) {
-          setError("Unable to load company information.");
-        }
-      } finally {
-        if (active) setLoading(false);
+      setAuthorized(true);
+    } catch (err) {
+      console.error("Failed to load company:", err);
+
+      if (active) {
+        setError(
+          "Unable to load company information. Please try again."
+        );
+      }
+    } finally {
+      if (active) {
+        setLoading(false);
       }
     }
+  });
 
-    loadCompany();
-
-    return () => {
-      active = false;
-    };
-  }, [companyId]);
+  return () => {
+    active = false;
+    unsubscribe();
+  };
+}, [companyId, router]);
 
   const cards = [
     {
@@ -173,7 +209,6 @@ function CompanyDashboardContent() {
             </div>
           </section>
         )}
-
         {!loading && !company && !error && (
           <section className="rounded-2xl border border-slate-700 bg-slate-900 p-6">
             <h2 className="text-xl font-bold">
@@ -192,30 +227,33 @@ function CompanyDashboardContent() {
           </section>
         )}
 
-        <section>
-          <h2 className="mb-5 text-2xl font-bold">
-            Dashboard Tools
-          </h2>
+        {authorized && company && (
+          <section>
+            <h2 className="mb-5 text-2xl font-bold">
+              Dashboard Tools
+            </h2>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card) => (
-              <Link
-                key={card.title}
-                href={card.href}
-                className="rounded-2xl border border-slate-700 bg-slate-900 p-6 transition hover:border-blue-500 hover:bg-slate-800"
-              >
-                <div className="mb-4 text-5xl">{card.icon}</div>
-                <h3 className="text-xl font-bold">
-                  {card.title}
-                </h3>
-                <p className="mt-2 text-slate-400">
-                  {card.description}
-                </p>
-              </Link>
-
-            ))}
-          </div>
-        </section>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {cards.map((card) => (
+                <Link
+                  key={card.title}
+                  href={card.href}
+                  className="rounded-2xl border border-slate-700 bg-slate-900 p-6 transition hover:border-blue-500 hover:bg-slate-800"
+                >
+                  <div className="mb-4 text-5xl">
+                    {card.icon}
+                  </div>
+                  <h3 className="text-xl font-bold">
+                    {card.title}
+                  </h3>
+                  <p className="mt-2 text-slate-400">
+                    {card.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
